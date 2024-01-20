@@ -26,6 +26,23 @@ app.get('/video', async (req, res) => {
   }
 })
 
+app.get('/play/:url', async (req: Request, res: Response) => {
+  const urlParam = req.params.url
+  const url = `https://www.youtube.com/watch?v=${urlParam}`
+  try {
+    const info = await ytdl.getInfo(url as string)
+    const videoFormat = ytdl.chooseFormat(info.formats, { quality: 'highest', filter: 'videoandaudio' } )
+
+    const videoUrl = videoFormat.url
+
+    res.redirect(videoUrl)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Failed to get audio URL!' })
+  }
+})
+
+
 // Define a route to get the direct low-quality audio stream URL from a YouTube URL
 app.get('/audio', async (req, res) => {
   const ytUrl = req.query.url;

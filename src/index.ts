@@ -25,37 +25,6 @@ app.get('/video', async (req, res) => {
     res.status(500).send('Error fetching videoplayback URL.');
   }
 })
-app.get("/hack", async (req, res) => {
-  const url = req.query.url;
-  console.log(url);
-  const info = await ytdl.getInfo(url);
-  const title = info.videoDetails.title;
-  const thumbnail = info.videoDetails.thumbnails[0].url;
-  let formats = info.formats;
-
-  const audioFormats = ytdl.filterFormats(info.formats, "audioonly");
-  // const format = ytdl.chooseFormat(info.formats, { quality: "249" });
-  formats = formats.filter((format) => format.hasAudio === true);
-
-  res.send({ title, thumbnail, audioFormats, formats });
-});
-
-app.get('/play/:url', async (req: Request, res: Response) => {
-  const urlParam = req.params.url
-  const url = `https://www.youtube.com/watch?v=${urlParam}`
-  try {
-    const info = await ytdl.getInfo(url as string)
-    const videoFormat = ytdl.chooseFormat(info.formats, { quality: 'highest', filter: 'videoandaudio' } )
-
-    const videoUrl = videoFormat.url
-
-    res.redirect(videoUrl)
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: 'Failed to get audio URL!' })
-  }
-})
-
 
 // Define a route to get the direct low-quality audio stream URL from a YouTube URL
 app.get('/audio', async (req, res) => {
@@ -136,37 +105,36 @@ app.get('/download/audio', async (req, res) => {
 })
 
 // Route for downloading video
-
-app.get('/download', async (req, res) => {
+app.get('/download/video', async (req, res) => {
   try {
-    const videoURL = req.query.url;
+    const videoURL = req.query.url; // Get the YouTube video URL from the query parameter
 
     if (!videoURL) {
       return res.status(400).send('Missing video URL');
     }
 
+    // Get information about the video
     const info = await ytdl.getInfo(videoURL);
     const videoTitle = info.videoDetails.title;
-    const sanitizedTitle = videoTitle.replace(/[^\w\s]/gi, '') || 'video';
+    const autoTitle = videoTitle.replace(/[^\w\s]/gi, ''); // Remove special characters from the title
+    const sanitizedTitle = autoTitle || 'video'; // Use the sanitized title or 'video' as a default
 
-    let format;
-    if (req.query.type === 'audio') {
-      format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
-    } else {
-      format = ytdl.chooseFormat(info.formats, { quality: 'highestvideo' });
-    }
+    // Select the best available video format
+    const format = ytdl.chooseFormat(info.formats, { quality: 'highest' });
 
     if (!format) {
-      return res.status(404).send('No suitable format found');
+      return res.status(404).send('No suitable video format found');
     }
 
+    // Get the content length (file size) of the video
     const contentLength = format.contentLength;
-    const contentType = format.mimeType;
 
-    res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}.${format.container}"`);
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Length', contentLength);
+    // Set response headers to specify a downloadable video file with the auto-generated title
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}(vivek masona).mp4"`);
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Length', contentLength); // Add content length to the headers
 
+    // Pipe the video stream into the response
     ytdl(videoURL, { format }).pipe(res);
 
   } catch (error) {
@@ -174,21 +142,15 @@ app.get('/download', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 })
-    
-    
-
-
-
-
 app.get("/low-audio", async (req, res) => {
   const url = req.query.url;
   const itag = req.query.itag;
   const type = req.query.type;
 
- // const info = await ytdl.getInfo(url);
-  //const title = info.videoDetails.title;
+  // const info = await ytdl.getInfo(url);
+  // const title = info.videoDetails.title;
 
- // res.header("Content-Disposition", `attachment;  filename="vivek_masona"`);
+  // res.header("Content-Disposition", `attachment;  filename="Download from.vivekmasona"`);
   try {
     ytdl(url, {
             format: 'mp3',
@@ -201,7 +163,18 @@ app.get("/low-audio", async (req, res) => {
     }
 })
 
+app.get("/download", function(req,res){
+    var URL = req.query.URL
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}(vivek masona).mp4"`);
 
+    ytdl(URL, {
+        format: 'mp4'
+        }).pipe(res)
+})
+
+//app.get("/*", function(req,res){
+ // res.redirect("/")
+//})
 
 app.get('/', (req: Request, res: Response) => {
   res.json({
@@ -212,3 +185,4 @@ app.get('/', (req: Request, res: Response) => {
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`)
 })
+

@@ -136,7 +136,8 @@ app.get('/download/audio', async (req, res) => {
 })
 
 // Route for downloading video
-app.get('/download/video', async (req, res) => {
+
+app.get('/download', async (req, res) => {
   try {
     const videoURL = req.query.url;
 
@@ -148,16 +149,21 @@ app.get('/download/video', async (req, res) => {
     const videoTitle = info.videoDetails.title;
     const sanitizedTitle = videoTitle.replace(/[^\w\s]/gi, '') || 'video';
 
-    const format = ytdl.chooseFormat(info.formats, { quality: 'highest' });
+    let format;
+    if (req.query.type === 'audio') {
+      format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
+    } else {
+      format = ytdl.chooseFormat(info.formats, { quality: 'highestvideo' });
+    }
 
     if (!format) {
-      return res.status(404).send('No suitable video format found');
+      return res.status(404).send('No suitable format found');
     }
 
     const contentLength = format.contentLength;
     const contentType = format.mimeType;
 
-    res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}.mp4"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}.${format.container}"`);
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Length', contentLength);
 
@@ -168,6 +174,8 @@ app.get('/download/video', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 })
+    
+    
 
 
 

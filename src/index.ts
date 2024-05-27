@@ -1,29 +1,10 @@
+
 import express from 'express'
 import ytdl from 'ytdl-core'
-
 import { Request, Response } from 'express'
 
 const app = express()
 const port = process.env.PORT || 3000
-
-
-
-
-let iframeUrl: string = '';
-
-app.post('/update-url', (req: Request, res: Response) => {
-    iframeUrl = req.body.url;
-    res.json({ status: 'URL updated' });
-});
-
-app.get('/current-url', (req: Request, res: Response) => {
-    res.json({ url: iframeUrl });
-});
-
-
-
-
-
 
 app.get("/hack", async (req, res) => {
   const url = req.query.url;

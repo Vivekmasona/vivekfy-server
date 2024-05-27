@@ -22,10 +22,7 @@ app.get('/current-url', (req: Request, res: Response) => {
     res.json({ url: iframeUrl });
 });
 
-const PORT: number = 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+
 
 
 

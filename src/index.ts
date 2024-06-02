@@ -1,12 +1,11 @@
 import express from 'express';
 import ytdl from 'ytdl-core';
-import cors from 'cors';
+import { Request, Response } from 'express';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(cors());
 
 let sessions: { [key: string]: any } = {};
 
@@ -217,7 +216,7 @@ app.get('/download', (req, res) => {
   }
 });
 
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.json({ query: 'None' });
 });
 

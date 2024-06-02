@@ -1,16 +1,19 @@
 import express from 'express';
 import ytdl from 'ytdl-core';
+import { Request, Response } from 'express';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
+app.use(cors());
 
 let sessions: { [key: string]: any } = {};
 
 // Original functionality for controlling sessions
-app.post('/control', (req, res) => {
+app.post('/control', (req: Request, res: Response) => {
   const { action, value, sessionId } = req.body;
 
   if (!sessions[sessionId]) {
@@ -38,7 +41,7 @@ app.post('/control', (req, res) => {
   }
 });
 
-app.post('/update-url', (req, res) => {
+app.post('/update-url', (req: Request, res: Response) => {
   const { url, sessionId } = req.body;
 
   if (!sessions[sessionId]) {
@@ -49,7 +52,7 @@ app.post('/update-url', (req, res) => {
   res.json({ status: 'URL updated', sessionId });
 });
 
-app.get('/current-url/:sessionId', (req, res) => {
+app.get('/current-url/:sessionId', (req: Request, res: Response) => {
   const { sessionId } = req.params;
 
   if (!sessions[sessionId]) {
@@ -68,7 +71,7 @@ app.get('/current-url/:sessionId', (req, res) => {
 });
 
 // New functionality for YouTube handling
-app.get('/hack', async (req, res) => {
+app.get('/hack', async (req: Request, res: Response) => {
   const url = req.query.url as string;
 
   try {
@@ -84,7 +87,7 @@ app.get('/hack', async (req, res) => {
   }
 });
 
-app.get('/video', async (req, res) => {
+app.get('/video', async (req: Request, res: Response) => {
   const ytUrl = req.query.url as string;
 
   if (!ytUrl) {
@@ -104,7 +107,7 @@ app.get('/video', async (req, res) => {
   }
 });
 
-app.get('/audio', async (req, res) => {
+app.get('/audio', async (req: Request, res: Response) => {
   const ytUrl = req.query.url as string;
 
   if (!ytUrl) {
@@ -132,7 +135,7 @@ app.get('/audio', async (req, res) => {
   }
 });
 
-app.get('/download/audio', async (req, res) => {
+app.get('/download/audio', async (req: Request, res: Response) => {
   const videoURL = req.query.url as string;
 
   if (!videoURL) {
@@ -159,7 +162,7 @@ app.get('/download/audio', async (req, res) => {
   }
 });
 
-app.get('/download/video', async (req, res) => {
+app.get('/download/video', async (req: Request, res: Response) => {
   const videoURL = req.query.url as string;
 
   if (!videoURL) {
@@ -185,7 +188,7 @@ app.get('/download/video', async (req, res) => {
   }
 });
 
-app.get('/low-audio', async (req, res) => {
+app.get('/low-audio', async (req: Request, res: Response) => {
   const url = req.query.url as string;
 
   if (!url) {
@@ -200,22 +203,27 @@ app.get('/low-audio', async (req, res) => {
   }
 });
 
-app.get('/download', (req, res) => {
-  const videoURL = req.query.URL as string;
+app.get('/download', (req: Request, res: Response) => {
+  const URL = req.query.URL as string;
 
-  res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}(vivek masona).mp4"`);
+  if (!URL) {
+    return res.status(400).send('Missing URL parameter');
+  }
 
-  ytdl(URL, {
-    format: 'mp4'
-  }).pipe(res)
-})
+  try {
+    res.setHeader('Content-Disposition', `attachment; filename="download(vivek masona).mp4"`);
+    ytdl(URL, { format: 'mp4' }).pipe(res);
+  } catch (err) {
+    console.error('Error:', err);
+    res.status(500).send('Error downloading video.');
+  }
+});
 
 app.get('/', (req: Request, res: Response) => {
-  res.json({
-    query: 'None'
-  })
-})
+  res.json({ query: 'None' });
+});
 
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`)
-})
+  console.log(`Server running on http://localhost:${port}`);
+});
+

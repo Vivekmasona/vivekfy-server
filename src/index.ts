@@ -45,16 +45,22 @@ app.post('/control', (req, res) => {
 app.post('/update-url', (req, res) => {
   const { url, sessionId } = req.body;
 
-  console.log(`Update URL: ${url}, SessionID: ${sessionId}`);
+  console.log(`Update URL Request: URL = ${url}, SessionID = ${sessionId}`);
 
   if (!sessions[sessionId]) {
+    console.log(`Session ${sessionId} not found. Initializing new session.`);
     sessions[sessionId] = { url: '', status: 'stop', volume: 100, action: null, value: null, lastSkipValue: null, lastSkipDirection: null };
+  }
+
+  if (!url) {
+    console.log(`URL is missing in the request.`);
+    return res.status(400).json({ status: 'fail', message: 'URL is missing' });
   }
 
   sessions[sessionId].url = url;
   res.json({ status: 'URL updated', sessionId });
 
-  console.log(`Updated Session: ${JSON.stringify(sessions[sessionId])}`);
+  console.log(`Updated Session URL: ${JSON.stringify(sessions[sessionId])}`);
 });
 
 app.get('/current-url/:sessionId', (req, res) => {
@@ -63,6 +69,7 @@ app.get('/current-url/:sessionId', (req, res) => {
   console.log(`Current URL Request for SessionID: ${sessionId}`);
 
   if (!sessions[sessionId]) {
+    console.log(`Invalid session ID: ${sessionId}`);
     return res.status(400).json({ error: 'Invalid session ID' });
   }
 

@@ -13,6 +13,8 @@ let sessions: { [key: string]: any } = {};
 app.post('/control', (req, res) => {
   const { action, value, sessionId } = req.body;
 
+  console.log(`Control Action: ${action}, Value: ${value}, SessionID: ${sessionId}`);
+
   if (!sessions[sessionId]) {
     sessions[sessionId] = { url: '', status: 'stop', volume: 100, action: null, value: null, lastSkipValue: null, lastSkipDirection: null };
   }
@@ -36,10 +38,14 @@ app.post('/control', (req, res) => {
     session.value = value;
     res.json({ status: 'Command received', action, value, sessionId });
   }
+
+  console.log(`Updated Session: ${JSON.stringify(sessions[sessionId])}`);
 });
 
 app.post('/update-url', (req, res) => {
   const { url, sessionId } = req.body;
+
+  console.log(`Update URL: ${url}, SessionID: ${sessionId}`);
 
   if (!sessions[sessionId]) {
     sessions[sessionId] = { url: '', status: 'stop', volume: 100, action: null, value: null, lastSkipValue: null, lastSkipDirection: null };
@@ -47,10 +53,14 @@ app.post('/update-url', (req, res) => {
 
   sessions[sessionId].url = url;
   res.json({ status: 'URL updated', sessionId });
+
+  console.log(`Updated Session: ${JSON.stringify(sessions[sessionId])}`);
 });
 
 app.get('/current-url/:sessionId', (req, res) => {
   const { sessionId } = req.params;
+
+  console.log(`Current URL Request for SessionID: ${sessionId}`);
 
   if (!sessions[sessionId]) {
     return res.status(400).json({ error: 'Invalid session ID' });
@@ -65,11 +75,15 @@ app.get('/current-url/:sessionId', (req, res) => {
     action: sessions[sessionId].action,
     value: sessions[sessionId].value
   });
+
+  console.log(`Current Session Data: ${JSON.stringify(sessions[sessionId])}`);
 });
 
 // New functionality for YouTube handling
 app.get('/hack', async (req, res) => {
   const url = req.query.url as string;
+
+  console.log(`Hack Request URL: ${url}`);
 
   try {
     const info = await ytdl.getInfo(url);

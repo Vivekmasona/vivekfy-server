@@ -1,19 +1,17 @@
 import express from 'express';
 import ytdl from 'ytdl-core';
-import { Request, Response } from 'express';
-import bodyParser from 'body-parser';
 import cors from 'cors';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(cors());
 
 let sessions: { [key: string]: any } = {};
 
 // Original functionality for controlling sessions
-app.post('/control', (req: Request, res: Response) => {
+app.post('/control', (req, res) => {
   const { action, value, sessionId } = req.body;
 
   if (!sessions[sessionId]) {
@@ -41,7 +39,7 @@ app.post('/control', (req: Request, res: Response) => {
   }
 });
 
-app.post('/update-url', (req: Request, res: Response) => {
+app.post('/update-url', (req, res) => {
   const { url, sessionId } = req.body;
 
   if (!sessions[sessionId]) {
@@ -52,7 +50,7 @@ app.post('/update-url', (req: Request, res: Response) => {
   res.json({ status: 'URL updated', sessionId });
 });
 
-app.get('/current-url/:sessionId', (req: Request, res: Response) => {
+app.get('/current-url/:sessionId', (req, res) => {
   const { sessionId } = req.params;
 
   if (!sessions[sessionId]) {
@@ -71,7 +69,7 @@ app.get('/current-url/:sessionId', (req: Request, res: Response) => {
 });
 
 // New functionality for YouTube handling
-app.get('/hack', async (req: Request, res: Response) => {
+app.get('/hack', async (req, res) => {
   const url = req.query.url as string;
 
   try {
@@ -87,7 +85,7 @@ app.get('/hack', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/video', async (req: Request, res: Response) => {
+app.get('/video', async (req, res) => {
   const ytUrl = req.query.url as string;
 
   if (!ytUrl) {
@@ -107,7 +105,7 @@ app.get('/video', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/audio', async (req: Request, res: Response) => {
+app.get('/audio', async (req, res) => {
   const ytUrl = req.query.url as string;
 
   if (!ytUrl) {
@@ -135,7 +133,7 @@ app.get('/audio', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/download/audio', async (req: Request, res: Response) => {
+app.get('/download/audio', async (req, res) => {
   const videoURL = req.query.url as string;
 
   if (!videoURL) {
@@ -162,7 +160,7 @@ app.get('/download/audio', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/download/video', async (req: Request, res: Response) => {
+app.get('/download/video', async (req, res) => {
   const videoURL = req.query.url as string;
 
   if (!videoURL) {
@@ -188,7 +186,7 @@ app.get('/download/video', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/low-audio', async (req: Request, res: Response) => {
+app.get('/low-audio', async (req, res) => {
   const url = req.query.url as string;
 
   if (!url) {
@@ -203,7 +201,7 @@ app.get('/low-audio', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/download', (req: Request, res: Response) => {
+app.get('/download', (req, res) => {
   const URL = req.query.URL as string;
 
   if (!URL) {
@@ -219,10 +217,11 @@ app.get('/download', (req: Request, res: Response) => {
   }
 });
 
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (req, res) => {
   res.json({ query: 'None' });
 });
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
+

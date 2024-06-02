@@ -1,18 +1,17 @@
 import express from 'express';
 import ytdl from 'ytdl-core';
-import { Request, Response } from 'express';
+import bodyParser from 'body-parser';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(express.json());
+app.use(bodyParser.json());
 
 let sessions: { [key: string]: any } = {};
 
+// Original functionality for controlling sessions
 app.post('/control', (req, res) => {
   const { action, value, sessionId } = req.body;
-
-  console.log(`Control Action: ${action}, Value: ${value}, SessionID: ${sessionId}`);
 
   if (!sessions[sessionId]) {
     sessions[sessionId] = { url: '', status: 'stop', volume: 100, action: null, value: null, lastSkipValue: null, lastSkipDirection: null };
@@ -37,38 +36,23 @@ app.post('/control', (req, res) => {
     session.value = value;
     res.json({ status: 'Command received', action, value, sessionId });
   }
-
-  console.log(`Updated Session: ${JSON.stringify(sessions[sessionId])}`);
 });
 
 app.post('/update-url', (req, res) => {
   const { url, sessionId } = req.body;
 
-  console.log(`Update URL Request: URL = ${url}, SessionID = ${sessionId}`);
-
   if (!sessions[sessionId]) {
-    console.log(`Session ${sessionId} not found. Initializing new session.`);
     sessions[sessionId] = { url: '', status: 'stop', volume: 100, action: null, value: null, lastSkipValue: null, lastSkipDirection: null };
-  }
-
-  if (!url) {
-    console.log(`URL is missing in the request.`);
-    return res.status(400).json({ status: 'fail', message: 'URL is missing' });
   }
 
   sessions[sessionId].url = url;
   res.json({ status: 'URL updated', sessionId });
-
-  console.log(`Updated Session URL: ${JSON.stringify(sessions[sessionId])}`);
 });
 
 app.get('/current-url/:sessionId', (req, res) => {
   const { sessionId } = req.params;
 
-  console.log(`Current URL Request for SessionID: ${sessionId}`);
-
   if (!sessions[sessionId]) {
-    console.log(`Invalid session ID: ${sessionId}`);
     return res.status(400).json({ error: 'Invalid session ID' });
   }
 
@@ -81,14 +65,11 @@ app.get('/current-url/:sessionId', (req, res) => {
     action: sessions[sessionId].action,
     value: sessions[sessionId].value
   });
-
-  console.log(`Current Session Data: ${JSON.stringify(sessions[sessionId])}`);
 });
 
+// New functionality for YouTube handling
 app.get('/hack', async (req, res) => {
   const url = req.query.url as string;
-
-  console.log(`Hack Request URL: ${url}`);
 
   try {
     const info = await ytdl.getInfo(url);
@@ -220,26 +201,21 @@ app.get('/low-audio', async (req, res) => {
 });
 
 app.get('/download', (req, res) => {
-  const URL = req.query.URL as string;
+  const videoURL = req.query.URL as string;
 
-  if (!URL) {
-    return res.status(400).send('Missing URL parameter');
-  }
+  res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}(vivek masona).mp4"`);
 
-  try {
-    res.setHeader('Content-Disposition', `attachment; filename="download(vivek masona).mp4"`);
-    ytdl(URL, { format: 'mp4' }).pipe(res);
-  } catch (err) {
-    console.error('Error:', err);
-    res.status(500).send('Error downloading video.');
-  }
-});
+  ytdl(URL, {
+    format: 'mp4'
+  }).pipe(res)
+})
 
 app.get('/', (req: Request, res: Response) => {
-  res.json({ query: 'None' });
-});
+  res.json({
+    query: 'None'
+  })
+})
 
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
-
+  console.log(`Server running on http://localhost:${port}`)
+})

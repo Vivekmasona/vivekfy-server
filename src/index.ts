@@ -9,7 +9,6 @@ app.use(express.json());
 
 let sessions: { [key: string]: any } = {};
 
-// Original functionality for controlling sessions
 app.post('/control', (req, res) => {
   const { action, value, sessionId } = req.body;
 
@@ -86,7 +85,6 @@ app.get('/current-url/:sessionId', (req, res) => {
   console.log(`Current Session Data: ${JSON.stringify(sessions[sessionId])}`);
 });
 
-// New functionality for YouTube handling
 app.get('/hack', async (req, res) => {
   const url = req.query.url as string;
 

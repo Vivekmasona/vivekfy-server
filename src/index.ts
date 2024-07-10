@@ -10,7 +10,11 @@ app.get('/play/:url', async (req: Request, res: Response) => {
   const url = `https://www.youtube.com/watch?v=${urlParam}`
   try {
     const info = await ytdl.getInfo(url as string)
-    const audioFormat = ytdl.chooseFormat(info.formats, { quality: 'lowestaudio', filter: 'audioonly', audioCodec: 'opus' })
+    const audioFormat = ytdl.filterFormats(info.formats, 'audioonly').find(format => format.audioCodec === 'opus' && format.audioQuality === 'AUDIO_QUALITY_LOW')
+
+    if (!audioFormat) {
+      throw new Error('No suitable audio format found')
+    }
 
     const audioUrl = audioFormat.url
 

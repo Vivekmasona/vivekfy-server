@@ -58,15 +58,15 @@ app.get('/videoinfo/:url', async (req: Request, res: Response) => {
 });
 
 app.get('/dl', async (req: Request, res: Response) => {
-  const videoUrl = req.query.url;
+  const videoUrl = req.query.url as string;
   if (!videoUrl) {
     return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
   }
 
-  function getYouTubeVideoId(url) {
+  function getYouTubeVideoId(url: string): string | null {
     const urlObj = new URL(url);
     const params = new URLSearchParams(urlObj.search);
-    return params.get('v') || urlObj.pathname.split('/').pop();
+    return params.get('v') || urlObj.pathname.split('/').pop() || null;
   }
 
   const videoId = getYouTubeVideoId(videoUrl);

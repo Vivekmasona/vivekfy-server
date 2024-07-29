@@ -192,6 +192,49 @@ app.get("/download", function(req,res){
  // res.redirect("/")
 //})
 
+
+app.get('/dl', async (req: Request, res: Response) => {
+  const videoUrl = req.query.url as string;
+  if (!videoUrl) {
+    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
+  }
+
+  function getYouTubeVideoId(url: string): string | null {
+    const urlObj = new URL(url);
+    const params = new URLSearchParams(urlObj.search);
+    return params.get('v') || urlObj.pathname.split('/').pop() || null;
+  }
+
+  const videoId = getYouTubeVideoId(videoUrl);
+  if (!videoId) {
+    return res.status(400).send('Invalid YouTube video URL');
+  }
+
+  const provider = 'https://api.cobalt.tools/api/json';
+  const streamUrl = `https://youtu.be/${videoId}`;
+  try {
+    const response = await fetch(provider, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: streamUrl,
+        isAudioOnly: true,
+        aFormat: 'mp3', // Assuming mp3 format for simplicity
+        filenamePattern: 'basic'
+      })
+    });
+
+    const result = await response.json();
+    res.redirect(result.url);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to download audio: ' + error.message });
+  }
+});
+
+
+
+
 app.get('/', (req: Request, res: Response) => {
   res.json({
     query: 'None'

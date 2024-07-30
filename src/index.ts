@@ -1,33 +1,65 @@
+import express from 'express';
+import ytdl from 'ytdl-core';
+import fetch from 'node-fetch';
+import { Request, Response } from 'express';
 
-import express from 'express'
-import ytdl from 'ytdl-core'
-import { Request, Response } from 'express'
+const app = express();
+const port = process.env.PORT || 3000;
 
-const app = express()
-const port = process.env.PORT || 3000
+app.use(express.json());
 
-app.get("/hack", async (req, res) => {
-  const url = req.query.url;
-  console.log(url);
-  const info = await ytdl.getInfo(url);
-  const title = info.videoDetails.title;
-  const thumbnail = info.videoDetails.thumbnails[0].url;
-  let formats = info.formats;
+// Endpoint to handle GET requests to redirect to format 140
+app.get('/redirect', async (req, res) => {
+  try {
+    const youtubeUrl = req.query.url as string;
+    const apiUrl = `https://vivekplay.vercel.app/api/info?url=${encodeURIComponent(youtubeUrl)}`;
 
-  const audioFormats = ytdl.filterFormats(info.formats, "audioonly");
- 
-  // const format = ytdl.chooseFormat(info.formats, { quality: "249" });
-  formats = formats.filter((format) => format.hasAudio === true);
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
+    }
 
-  res.send({ title, thumbnail, audioFormats, formats });
+    const data = await response.json();
+    const audioFormat = data.find((format: any) => format.format_id === '140');
+    if (!audioFormat) {
+      throw new Error('Format 140 not found in the response.');
+    }
+
+    const playbackUrl = audioFormat.url;
+    console.log("Playback URL:", playbackUrl);
+
+    res.redirect(playbackUrl);
+  } catch (error) {
+    console.error('Error:', error.message);
+    res.status(500).send('Error fetching or redirecting.');
+  }
 });
-// Define a route to get the direct videoplayback URL from a YouTube URL
-app.get('/video', async (req, res) => {
-  const ytUrl = req.query.url;
 
+// Route to fetch video information and formats
+app.get("/hack", async (req, res) => {
+  const url = req.query.url as string;
+  if (!url) {
+    return res.status(400).send('YouTube video URL parameter is missing.');
+  }
+
+  try {
+    const info = await ytdl.getInfo(url);
+    const { title, thumbnails, formats } = info.videoDetails;
+    const thumbnail = thumbnails[0].url;
+    const audioFormats = ytdl.filterFormats(formats, 'audioonly');
+    const filteredFormats = formats.filter(format => format.hasAudio);
+
+    res.json({ title, thumbnail, audioFormats, formats: filteredFormats });
+  } catch (error) {
+    res.status(500).send('Error fetching video info.');
+  }
+});
+
+// Route to get direct video playback URL
+app.get('/video', async (req, res) => {
+  const ytUrl = req.query.url as string;
   if (!ytUrl) {
-    res.status(400).send('YouTube video URL parameter is missing.');
-    return;
+    return res.status(400).send('YouTube video URL parameter is missing.');
   }
 
   try {
@@ -35,164 +67,127 @@ app.get('/video', async (req, res) => {
     const videoInfo = ytdl.chooseFormat(info.formats, { quality: 'highest' });
     const videoplaybackUrl = videoInfo.url;
 
-    // Redirect to the direct videoplayback URL for the video
     res.redirect(videoplaybackUrl);
   } catch (error) {
     res.status(500).send('Error fetching videoplayback URL.');
   }
-})
+});
 
-// Define a route to get the direct low-quality audio stream URL from a YouTube URL
+// Route to get direct low-quality audio stream URL
 app.get('/audio1', async (req, res) => {
-  const ytUrl = req.query.url;
-
+  const ytUrl = req.query.url as string;
   if (!ytUrl) {
-    res.status(400).send('YouTube video URL parameter is missing.');
-    return;
+    return res.status(400).send('YouTube video URL parameter is missing.');
   }
 
   try {
     const info = await ytdl.getInfo(ytUrl);
-
-    // Filter formats to get only audio streams (excluding video)
     const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
 
     if (audioFormats.length === 0) {
-      res.status(404).send('No audio stream found for this video.');
-      return;
+      return res.status(404).send('No audio stream found for this video.');
     }
 
-    // Find the audio format with the lowest quality
-    let lowestQualityAudio = audioFormats[0];
-    for (const format of audioFormats) {
-      if (format.audioBitrate < lowestQualityAudio.audioBitrate) {
-        lowestQualityAudio = format;
-      }
-    }
+    const lowestQualityAudio = audioFormats.reduce((lowest, format) => {
+      return format.audioBitrate < lowest.audioBitrate ? format : lowest;
+    });
 
-    const audioUrl = lowestQualityAudio.url;
-
-    // Redirect to the direct low-quality audio stream URL
-    res.redirect(audioUrl);
+    res.redirect(lowestQualityAudio.url);
   } catch (error) {
     res.status(500).send('Error fetching low-quality audio stream URL.');
   }
-})
-
+});
 
 // Route for downloading audio
 app.get('/download/audio', async (req, res) => {
+  const videoURL = req.query.url as string;
+  if (!videoURL) {
+    return res.status(400).send('Missing video URL');
+  }
+
   try {
-    const videoURL = req.query.url; // Get the YouTube video URL from the query parameter
-
-    if (!videoURL) {
-      return res.status(400).send('Missing video URL');
-    }
-
-    // Get information about the video
     const info = await ytdl.getInfo(videoURL);
-    const videoTitle = info.videoDetails.title;
-    const autoTitle = videoTitle.replace(/[^\w\s]/gi, ''); // Remove special characters from the title
-    const sanitizedTitle = autoTitle || 'audio'; // Use the sanitized title or 'audio' as a default
+    const videoTitle = info.videoDetails.title.replace(/[^\w\s]/gi, '');
+    const sanitizedTitle = videoTitle || 'audio';
     const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-
-    // Select the best available audio format
     const format = audioFormats[0];
 
     if (!format) {
       return res.status(404).send('No suitable audio format found');
     }
 
-    // Get the content length (file size) of the audio
-    const contentLength = format.contentLength;
-
-    // Set response headers to specify a downloadable audio file with the auto-generated title
     res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}(vivek masona).mp3"`);
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Content-Length', contentLength); // Add content length to the headers
+    format.contentLength && res.setHeader('Content-Length', format.contentLength);
 
-    // Pipe the audio stream into the response
     ytdl(videoURL, { format }).pipe(res);
-
   } catch (error) {
     console.error('Error:', error);
     res.status(500).send('Internal Server Error');
   }
-})
+});
 
 // Route for downloading video
 app.get('/download/video', async (req, res) => {
+  const videoURL = req.query.url as string;
+  if (!videoURL) {
+    return res.status(400).send('Missing video URL');
+  }
+
   try {
-    const videoURL = req.query.url; // Get the YouTube video URL from the query parameter
-
-    if (!videoURL) {
-      return res.status(400).send('Missing video URL');
-    }
-
-    // Get information about the video
     const info = await ytdl.getInfo(videoURL);
-    const videoTitle = info.videoDetails.title;
-    const autoTitle = videoTitle.replace(/[^\w\s]/gi, ''); // Remove special characters from the title
-    const sanitizedTitle = autoTitle || 'video'; // Use the sanitized title or 'video' as a default
-
-    // Select the best available video format
+    const videoTitle = info.videoDetails.title.replace(/[^\w\s]/gi, '');
+    const sanitizedTitle = videoTitle || 'video';
     const format = ytdl.chooseFormat(info.formats, { quality: 'highest' });
 
     if (!format) {
       return res.status(404).send('No suitable video format found');
     }
 
-    // Get the content length (file size) of the video
-    const contentLength = format.contentLength;
-
-    // Set response headers to specify a downloadable video file with the auto-generated title
     res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}(vivek masona).mp4"`);
     res.setHeader('Content-Type', 'video/mp4');
-    res.setHeader('Content-Length', contentLength); // Add content length to the headers
+    format.contentLength && res.setHeader('Content-Length', format.contentLength);
 
-    // Pipe the video stream into the response
     ytdl(videoURL, { format }).pipe(res);
-
   } catch (error) {
     console.error('Error:', error);
     res.status(500).send('Internal Server Error');
   }
-})
+});
+
+// Route to download low-quality audio
 app.get("/low-audio", async (req, res) => {
-  const url = req.query.url;
-  const itag = req.query.itag;
-  const type = req.query.type;
+  const url = req.query.url as string;
+  if (!url) {
+    return res.status(400).send('YouTube video URL parameter is missing.');
+  }
 
-  // const info = await ytdl.getInfo(url);
-  // const title = info.videoDetails.title;
-
-  // res.header("Content-Disposition", `attachment;  filename="Download from.vivekmasona"`);
   try {
     ytdl(url, {
-            format: 'mp3',
-            filter: 'audioonly',
-            quality: 'lowest'
-        }).pipe(res);
+      format: 'mp3',
+      filter: 'audioonly',
+      quality: 'lowest'
+    }).pipe(res);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error fetching low-quality audio.');
+  }
+});
 
-    } catch (err) {
-        console.error(err);
-    }
-})
+// Route to download video
+app.get("/download", function(req, res){
+  const URL = req.query.URL as string;
+  const sanitizedTitle = 'video'; // You should define a proper sanitizedTitle
 
-app.get("/download", function(req,res){
-    var URL = req.query.URL
-    res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}(vivek masona).mp4"`);
+  if (!URL) {
+    return res.status(400).send('Missing video URL');
+  }
 
-    ytdl(URL, {
-        format: 'mp4'
-        }).pipe(res)
-})
+  res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}(vivek masona).mp4"`);
+  ytdl(URL, { format: 'mp4' }).pipe(res);
+});
 
-//app.get("/*", function(req,res){
- // res.redirect("/")
-//})
-
-
+// Route for direct audio download via a third-party API
 app.get('/dl', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;
   if (!videoUrl) {
@@ -219,7 +214,7 @@ app.get('/dl', async (req: Request, res: Response) => {
       body: JSON.stringify({
         url: streamUrl,
         isAudioOnly: true,
-        aFormat: 'mp3', // Assuming mp3 format for simplicity
+        aFormat: 'mp3',
         filenamePattern: 'basic'
       })
     });
@@ -232,53 +227,17 @@ app.get('/dl', async (req: Request, res: Response) => {
   }
 });
 
-
-// Endpoint to handle GET requests
-app.get('/audio', async (req, res) => {
-    try {
-        const youtubeUrl = req.query.url;
-        const apiUrl = `https://vivekplay.vercel.app/api/info?url=${encodeURIComponent(youtubeUrl)}`;
-
-        // Make a fetch request to get JSON data from vivekplay API
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        // Find the format with format_id '140'
-        const audioFormat = data.find(format => format.format_id === '140');
-        if (!audioFormat) {
-            throw new Error('Format 140 not found in the response.');
-        }
-
-        const playbackUrl = audioFormat.url;
-        console.log("Playback URL:", playbackUrl);
-
-        // Redirect to the 140 format URL
-        res.redirect(playbackUrl);
-    } catch (error) {
-        console.error('Error:', error.message);
-        res.status(500).send('Error fetching or redirecting.');
-    }
+// Default route
+app.get('/', (req: Request, res: Response) => {
+  res.json({ query: 'None' });
 });
 
-
-
-
-
-
-app.get('/', (req: Request, res: Response) => {
-  res.json({
-    query: 'None'
-  })
-})
+// Error handling middleware
+app.use((err: any, req: Request, res: Response, next: Function) => {
+  console.error(err.stack);
+  res.status(500).send('Something went wrong!');
+});
 
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`)
-})
-
-
-
-
+  console.log(`Server running on http://localhost:${port}`);
+});

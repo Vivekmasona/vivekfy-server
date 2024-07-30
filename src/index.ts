@@ -1,6 +1,5 @@
 import express from 'express';
 import ytdl from 'ytdl-core';
-import fetch from 'node-fetch';
 import { Request, Response } from 'express';
 
 const app = express();
@@ -8,12 +7,22 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// Endpoint to handle GET requests to redirect to format 140
-app.get('/redirect', async (req, res) => {
-  try {
-    const youtubeUrl = req.query.url as string;
-    const apiUrl = `https://vivekplay.vercel.app/api/info?url=${encodeURIComponent(youtubeUrl)}`;
+// Function to extract YouTube video ID
+function getYouTubeVideoId(url: string): string | null {
+  const urlObj = new URL(url);
+  const params = new URLSearchParams(urlObj.search);
+  return params.get('v') || urlObj.pathname.split('/').pop() || null;
+}
 
+// Endpoint to handle GET requests to redirect to format 140
+app.get('/redirect', async (req: Request, res: Response) => {
+  const youtubeUrl = req.query.url as string;
+  if (!youtubeUrl) {
+    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
+  }
+
+  try {
+    const apiUrl = `https://vivekplay.vercel.app/api/info?url=${encodeURIComponent(youtubeUrl)}`;
     const response = await fetch(apiUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
@@ -192,12 +201,6 @@ app.get('/dl', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;
   if (!videoUrl) {
     return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
-  }
-
-  function getYouTubeVideoId(url: string): string | null {
-    const urlObj = new URL(url);
-    const params = new URLSearchParams(urlObj.search);
-    return params.get('v') || urlObj.pathname.split('/').pop() || null;
   }
 
   const videoId = getYouTubeVideoId(videoUrl);

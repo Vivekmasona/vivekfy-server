@@ -1,5 +1,6 @@
 import express from 'express';
 import ytdl from 'ytdl-core';
+import axios from 'axios';
 import { Request, Response } from 'express';
 
 const app = express();
@@ -14,33 +15,33 @@ function getYouTubeVideoId(url: string): string | null {
   return params.get('v') || urlObj.pathname.split('/').pop() || null;
 }
 
-// Endpoint to handle GET requests to redirect to format 140
+// New /redirect endpoint
 app.get('/redirect', async (req: Request, res: Response) => {
-  const youtubeUrl = req.query.url as string;
-  if (!youtubeUrl) {
-    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
+  // Check if the URL parameter is provided
+  const videoUrl = req.query.url as string;
+  if (!videoUrl) {
+    return res.status(400).send('Please provide a YouTube video URL as a parameter (e.g., ?url=ytlink).');
   }
 
   try {
-    const apiUrl = `https://vivekplay.vercel.app/api/info?url=${encodeURIComponent(youtubeUrl)}`;
-    const response = await fetch(apiUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
+    // Fetch video info using axios
+    const response = await axios.get(`https://vivekplay.vercel.app/api/info?url=${encodeURIComponent(videoUrl)}`);
+    const info = response.data;
+
+    // Check if the response contains audio format
+    if (info.formats && Array.isArray(info.formats)) {
+      for (const format of info.formats) {
+        if (format.format_note === 'low' && format.acodec === 'mp4a.40.5') {
+          // Redirect to the audio file for playback
+          return res.redirect(format.url);
+        }
+      }
     }
 
-    const data = await response.json();
-    const audioFormat = data.find((format: any) => format.format_id === '140');
-    if (!audioFormat) {
-      throw new Error('Format 140 not found in the response.');
-    }
-
-    const playbackUrl = audioFormat.url;
-    console.log("Playback URL:", playbackUrl);
-
-    res.redirect(playbackUrl);
+    // If no suitable format is found
+    res.send("Unable to find a suitable audio format for playback.");
   } catch (error) {
-    console.error('Error:', error.message);
-    res.status(500).send('Error fetching or redirecting.');
+    res.send("An error occurred while fetching video info.");
   }
 });
 
@@ -211,18 +212,16 @@ app.get('/dl', async (req: Request, res: Response) => {
   const provider = 'https://api.cobalt.tools/api/json';
   const streamUrl = `https://youtu.be/${videoId}`;
   try {
-    const response = await fetch(provider, {
-      method: 'POST',
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: streamUrl,
-        isAudioOnly: true,
-        aFormat: 'mp3',
-        filenamePattern: 'basic'
-      })
+    const response = await axios.post(provider, {
+      url: streamUrl,
+      isAudioOnly: true,
+      aFormat: 'mp3',
+      filenamePattern: 'basic'
+    }, {
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
     });
 
-    const result = await response.json();
+    const result = response.data;
     res.redirect(result.url);
   } catch (error) {
     console.error(error);

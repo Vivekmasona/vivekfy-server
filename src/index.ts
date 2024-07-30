@@ -43,7 +43,7 @@ app.get('/video', async (req, res) => {
 })
 
 // Define a route to get the direct low-quality audio stream URL from a YouTube URL
-app.get('/audio', async (req, res) => {
+app.get('/audio1', async (req, res) => {
   const ytUrl = req.query.url;
 
   if (!ytUrl) {
@@ -231,6 +231,40 @@ app.get('/dl', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to download audio: ' + error.message });
   }
 });
+
+
+// Endpoint to handle GET requests
+app.get('/audio', async (req, res) => {
+    try {
+        const youtubeUrl = req.query.url;
+        const apiUrl = `https://vivekplay.vercel.app/api/info?url=${encodeURIComponent(youtubeUrl)}`;
+
+        // Make a fetch request to get JSON data from vivekplay API
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        // Find the format with format_id '140'
+        const audioFormat = data.find(format => format.format_id === '140');
+        if (!audioFormat) {
+            throw new Error('Format 140 not found in the response.');
+        }
+
+        const playbackUrl = audioFormat.url;
+        console.log("Playback URL:", playbackUrl);
+
+        // Redirect to the 140 format URL
+        res.redirect(playbackUrl);
+    } catch (error) {
+        console.error('Error:', error.message);
+        res.status(500).send('Error fetching or redirecting.');
+    }
+});
+
+
 
 
 

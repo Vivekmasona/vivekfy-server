@@ -2,10 +2,10 @@
   "name": "youtube-downloader",
   "version": "1.0.0",
   "description": "A simple YouTube video and audio downloader using Express and ytdl-core",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node index.ts",
+    "dev": "nodemon index.ts"
   },
   "dependencies": {
     "axios": "^0.27.2",

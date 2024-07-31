@@ -8,6 +8,11 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
+// Function to sanitize input URL
+function sanitizeURL(url: string): string {
+  return url.replace(/[^a-zA-Z0-9-_.~:/?#[\]@!$&'()*+,;=%]/g, '');
+}
+
 // Function to extract YouTube video ID
 function getYouTubeVideoId(url: string): string | null {
   const urlObj = new URL(url);
@@ -17,31 +22,53 @@ function getYouTubeVideoId(url: string): string | null {
 
 // New /redirect endpoint
 app.get('/redirect', async (req: Request, res: Response) => {
-  // Check if the URL parameter is provided
   const videoUrl = req.query.url as string;
   if (!videoUrl) {
     return res.status(400).send('Please provide a YouTube video URL as a parameter (e.g., ?url=ytlink).');
   }
 
   try {
-    // Fetch video info using axios
     const response = await axios.get(`https://vivekplay.vercel.app/api/info?url=${encodeURIComponent(videoUrl)}`);
     const info = response.data;
 
-    // Check if the response contains audio format
     if (info.formats && Array.isArray(info.formats)) {
       for (const format of info.formats) {
         if (format.format_note === 'low' && format.acodec === 'mp4a.40.5') {
-          // Redirect to the audio file for playback
           return res.redirect(format.url);
         }
       }
     }
 
-    // If no suitable format is found
     res.send("Unable to find a suitable audio format for playback.");
   } catch (error) {
     res.send("An error occurred while fetching video info.");
+  }
+});
+
+// /api endpoint
+app.get('/api', (req: Request, res: Response) => {
+  const link: string = req.query.url ? sanitizeURL(req.query.url as string) : '';
+
+  if (link) {
+    let serverLink: string;
+
+    if (link.includes('youtu.be') || link.includes('youtube.com')) {
+      serverLink = `https://vivekfy.fanclub.rocks/audio?url=${link}`;
+    } else if (link.includes('facebook.com')) {
+      serverLink = `https://vivekfy.fanclub.rocks/api/server/fb?link=${link}`;
+    } else if (link.includes('instagram.com')) {
+      serverLink = `https://vivekfy.fanclub.rocks/api/server/insta?link=${link}`;
+    } else {
+      serverLink = 'Unsupported service';
+    }
+
+    if (serverLink !== 'Unsupported service') {
+      res.redirect(serverLink);
+    } else {
+      res.send(serverLink);
+    }
+  } else {
+    res.send('Invalid URL');
   }
 });
 
@@ -220,8 +247,7 @@ app.get('/dl', async (req: Request, res: Response) => {
     }, {
       headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
     });
-
-    const result = response.data;
+const result = response.data;
     res.redirect(result.url);
   } catch (error) {
     console.error(error);
@@ -243,3 +269,4 @@ app.use((err: any, req: Request, res: Response, next: Function) => {
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
+     

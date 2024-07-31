@@ -254,6 +254,32 @@ const result = response.data;
     res.status(500).json({ error: 'Failed to download audio: ' + error.message });
   }
 });
+app.get('/img', async (req: Request, res: Response) => {
+    const videoId = req.query.videoId;
+
+    if (!videoId || typeof videoId !== 'string') {
+        return res.status(400).send('Invalid video ID');
+    }
+
+    const apiUrl = `https://youtubeforever.vercel.app/videoinfo/${videoId}`;
+
+    try {
+        const response = await axios.get(apiUrl);
+        const channelData = response.data;
+        const thumbnails = channelData.author.thumbnails;
+        const thumbnail176 = thumbnails.find((thumbnail: any) => thumbnail.width === 176 && thumbnail.height === 176);
+
+        if (thumbnail176) {
+            return res.redirect(thumbnail176.url);
+        } else {
+            return res.status(404).send('176x176 thumbnail not found');
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send('Error fetching data');
+    }
+});
+
 
 // Default route
 app.get('/', (req: Request, res: Response) => {

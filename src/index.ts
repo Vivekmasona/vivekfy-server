@@ -211,6 +211,39 @@ app.get("/low-audio", async (req, res) => {
   }
 });
 
+// Route for streaming YouTube audio in OPUS format via a third-party API
+app.get('/stream', async (req: Request, res: Response) => {
+  const videoUrl = req.query.url as string;
+
+  if (!videoUrl) {
+    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
+  }
+
+  const videoId = getYouTubeVideoId(videoUrl);
+  if (!videoId) {
+    return res.status(400).send('Invalid YouTube video URL');
+  }
+
+  const provider = 'https://api.cobalt.tools/api/json';
+  const streamUrl = `https://youtu.be/${videoId}`;
+  try {
+    const response = await axios.post(provider, {
+      url: streamUrl,
+      isAudioOnly: true,  // Set to true to indicate audio-only
+      aFormat: 'opus',   // Set format to OPUS
+      filenamePattern: 'basic'
+    }, {
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    });
+
+    const result = response.data;
+    res.redirect(result.url); // Redirect to the stream URL
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to stream audio: ' + error.message });
+  }
+});
+
 // Route to download video
 app.get("/download", function(req, res){
   const URL = req.query.URL as string;

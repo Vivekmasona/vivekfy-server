@@ -20,9 +20,11 @@ function getYouTubeVideoId(url: string): string | null {
   return params.get('v') || urlObj.pathname.split('/').pop() || null;
 }
 
+
 // New /redirect endpoint
 app.get('/redirect', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;
+
   if (!videoUrl) {
     return res.status(400).send('Please provide a YouTube video URL as a parameter (e.g., ?url=ytlink).');
   }
@@ -32,10 +34,10 @@ app.get('/redirect', async (req: Request, res: Response) => {
     const info = response.data;
 
     if (info.formats && Array.isArray(info.formats)) {
-      for (const format of info.formats) {
-        if (format.format_note === 'low' && format.acodec === 'mp4a.40.5') {
-          return res.redirect(format.url);
-        }
+      const audioFormat = info.formats.find((format: any) => format.mimeType && format.mimeType.startsWith('audio') && format.quality === 'tiny');
+
+      if (audioFormat) {
+        return res.redirect(audioFormat.url);
       }
     }
 
@@ -44,6 +46,7 @@ app.get('/redirect', async (req: Request, res: Response) => {
     res.send("An error occurred while fetching video info.");
   }
 });
+
 
 // /api endpoint
 app.get('/api', (req: Request, res: Response) => {

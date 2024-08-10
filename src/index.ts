@@ -21,6 +21,32 @@ function getYouTubeVideoId(url: string): string | null {
 }
 
 
+// Function to find URL by itag in the nested JSON
+function findUrlByItag(data: any, itag: number): string | null {
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      if (item.itag === itag && item.url) {
+        return item.url;
+      }
+      // Recursively search in nested arrays
+      const result = findUrlByItag(item, itag);
+      if (result) {
+        return result;
+      }
+    }
+  } else if (typeof data === 'object') {
+    for (const key in data) {
+      if (data.hasOwnProperty(key)) {
+        const result = findUrlByItag(data[key], itag);
+        if (result) {
+          return result;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 // Route to handle redirection or JSON response
 app.get('/redirect', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;
@@ -39,25 +65,10 @@ app.get('/redirect', async (req: Request, res: Response) => {
       // Convert itag to a number and validate
       const itagNumber = parseInt(itag, 10);
       if (!isNaN(itagNumber)) {
-        // Function to find the URL by itag
-        function findUrlByItag(data: any, itag: number): string | null {
-          if (Array.isArray(data)) {
-            for (const item of data) {
-              if (item.itag === itag && item.url) {
-                return item.url;
-              }
-              // Recursively search in nested arrays
-              const result = findUrlByItag(item, itag);
-              if (result) {
-                return result;
-              }
-            }
-          }
-          return null;
-        }
-
+        // Find the URL by itag
         const mediaUrl = findUrlByItag(info, itagNumber);
         if (mediaUrl) {
+          console.log(`Redirecting to URL: ${mediaUrl}`); // Debugging
           return res.redirect(mediaUrl);
         } else {
           return res.status(404).json({ error: 'Media format with the specified itag not found.' });
@@ -70,9 +81,11 @@ app.get('/redirect', async (req: Request, res: Response) => {
       return res.json(info);
     }
   } catch (error) {
+    console.error('Error fetching video info:', error); // Debugging
     return res.status(500).json({ error: 'An error occurred while fetching video info.' });
   }
 });
+
 
 
 

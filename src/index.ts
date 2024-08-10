@@ -48,7 +48,7 @@ function findUrlByItag(data: any, itag: number): string | null {
 }
 
 // Route to handle redirection or JSON response
-app.get('/redirect', async (req: Request, res: Response) => {
+app.get('/audio', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;
   const itag = req.query.itag as string;
 
@@ -91,7 +91,7 @@ function extractUrls(data: any): string[] {
   const urls: string[] = [];
   if (Array.isArray(data)) {
     for (const item of data) {
-      if (item.url) {
+      if (item.url && typeof item.url === 'string' && isValidUrl(item.url)) {
         urls.push(item.url);
       }
       // Recursively search in nested arrays
@@ -107,47 +107,67 @@ function extractUrls(data: any): string[] {
   return urls;
 }
 
+// Function to check if a string is a valid URL
+function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Route to handle redirection or JSON response
 app.get('/saveall', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;
   const link = req.query.link as string;
 
   if (!videoUrl) {
-    return res.status(400).json({ error: 'Please provide a YouTube video URL as a parameter (e.g., ?url=ytlink).' });
+    return res.status(400).json({ error: 'URL parameter is missing.' });
   }
 
   try {
     // Fetch JSON data from the API
-    const response = await axios.get(`https://vivekfy.vercel.app/json?url=${encodeURIComponent(videoUrl)}`);
-    const info = response.data;
+    const apiUrl = `https://social-media-video-downloader.p.rapidapi.com/smvd/get/all?url=${encodeURIComponent(videoUrl)}`;
+    const response = await axios.get(apiUrl, {
+      headers: {
+        'x-rapidapi-host': 'social-media-video-downloader.p.rapidapi.com',
+        'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
+      }
+    });
+
+    const data = response.data;
 
     // Extract all URLs from the response
-    const urls = extractUrls(info);
+    const urls = extractUrls(data);
+    const totalUrls = urls.length;
 
     if (link) {
-      // Convert link to a number and validate
       const linkNumber = parseInt(link, 10);
-      if (!isNaN(linkNumber)) {
-        // Check if the linkNumber is within bounds
-        if (linkNumber >= 1 && linkNumber <= urls.length) {
-          const mediaUrl = urls[linkNumber - 1];
-          console.log(`Redirecting to URL: ${mediaUrl}`); // Debugging
-          return res.redirect(mediaUrl);
-        } else {
-          return res.status(404).json({ error: 'Link out of bounds. Total URLs: ' + urls.length });
-        }
+      if (!isNaN(linkNumber) && linkNumber >= 1 && linkNumber <= totalUrls) {
+        const mediaUrl = urls[linkNumber - 1];
+        console.log(`Redirecting to URL: ${mediaUrl}`); // Debugging
+        return res.redirect(mediaUrl);
       } else {
-        return res.status(400).json({ error: 'Invalid link format.' });
+        return res.status(404).json({
+          error: 'Index out of bounds.',
+          total_urls: totalUrls
+        });
       }
     } else {
       // Return the full JSON response if no link is specified
-      return res.json(info);
+      if (totalUrls > 0) {
+        return res.json(urls);
+      } else {
+        return res.status(404).json({ error: 'No URLs found in the response.' });
+      }
     }
   } catch (error) {
-    console.error('Error fetching video info:', error); // Debugging
-    return res.status(500).json({ error: 'An error occurred while fetching video info.' });
+    console.error('Error fetching data:', error); // Debugging
+    return res.status(500).json({ error: 'An error occurred while fetching data.' });
   }
 });
+
 
 
 app.get('/json', async (req, res) => {

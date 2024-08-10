@@ -21,29 +21,19 @@ function getYouTubeVideoId(url: string): string | null {
 }
 
 // New /redirect endpoint
-app.get('/redirect', async (req, res) => {
+app.get('/redirect', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;
   if (!videoUrl) {
     return res.status(400).send('Please provide a YouTube video URL as a parameter (e.g., ?url=ytlink).');
   }
 
-  // Extract video ID from the URL
-  const videoId = videoUrl.split('v=')[1]?.split('&')[0];
-  if (!videoId) {
-    return res.status(400).send('Invalid YouTube URL.');
-  }
-
   try {
-    // Fetch JSON data from the Glitch API using the video ID
-    const response = await axios.get('https://grape-earthy-amaranthus.glitch.me/json', {
-      params: { url: videoId }
-    });
+    const response = await axios.get(`https://vivekplay.vercel.app/api/info?url=${encodeURIComponent(videoUrl)}`);
     const info = response.data;
 
-    // Find the Opus format URL
     if (info.formats && Array.isArray(info.formats)) {
       for (const format of info.formats) {
-        if (format.mimeType === 'audio/webm; codecs="opus"') {
+        if (format.format_note === 'low' && format.acodec === 'mp4a.40.5') {
           return res.redirect(format.url);
         }
       }
@@ -51,12 +41,9 @@ app.get('/redirect', async (req, res) => {
 
     res.send("Unable to find a suitable audio format for playback.");
   } catch (error) {
-    res.status(500).send("An error occurred while fetching video info.");
+    res.send("An error occurred while fetching video info.");
   }
 });
-
-
-
 
 // /api endpoint
 app.get('/api', (req: Request, res: Response) => {
@@ -398,3 +385,4 @@ app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
      
+

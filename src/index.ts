@@ -236,6 +236,46 @@ app.get('/api', (req: Request, res: Response) => {
   }
 });
 
+
+app.get('/api1', async (req: Request, res: Response) => {
+  const link: string = req.query.url ? sanitizeURL(req.query.url as string) : '';
+
+  if (link) {
+    let serverLink: string;
+
+    if (link.includes('youtu.be') || link.includes('youtube.com')) {
+      serverLink = `https://vivekfy.fanclub.rocks/audio?url=${link}`;
+    } else if (link.includes('facebook.com')) {
+      serverLink = `https://vivekfy.fanclub.rocks/api/server/fb?link=${link}`;
+    } else if (link.includes('instagram.com')) {
+      serverLink = `https://vivekfy.fanclub.rocks/api/server/insta?link=${link}`;
+    } else {
+      res.status(400).send('Unsupported service');
+      return;
+    }
+
+    try {
+      const response = await axios.get(serverLink, { responseType: 'arraybuffer' });
+      res.setHeader('Content-Type', response.headers['content-type']);
+      res.send(response.data);
+    } catch (error) {
+      res.status(500).send('Error processing request');
+    }
+  } else {
+    res.status(400).send('Invalid URL');
+  }
+});
+
+// Helper function to sanitize URLs
+function sanitizeURL(url: string): string {
+  // Implement URL sanitization logic here
+  return url;
+}
+
+
+
+
+
 // Route to fetch video information and formats
 app.get("/hack1", async (req, res) => {
   const url = req.query.url as string;

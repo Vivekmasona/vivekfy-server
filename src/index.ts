@@ -21,15 +21,23 @@ function getYouTubeVideoId(url: string): string | null {
 }
 
 
-app.get('/hack', async (req, res) => {
+app.get('/json', async (req, res) => {
     const youtubeUrl = req.query.url;
     if (!youtubeUrl) {
         return res.status(400).send('URL parameter is required');
     }
 
+    // Extract video ID from YouTube URL
+    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+    if (!videoId) {
+        return res.status(400).send('Invalid YouTube URL');
+    }
+
     try {
         const response = await axios.get('https://yt-api.p.rapidapi.com/dl', {
-            params: { id: youtubeUrl },
+            params: { id: videoId },
             headers: {
                 'x-rapidapi-host': 'yt-api.p.rapidapi.com',
                 'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'

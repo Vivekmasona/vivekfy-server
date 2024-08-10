@@ -28,7 +28,7 @@ app.get('/redirect', async (req: Request, res: Response) => {
   }
 
   try {
-    const response = await axios.get(`https://vivekplay.vercel.app/api/info?url=${encodeURIComponent(videoUrl)}`);
+    const response = await axios.get(`https://grape-earthy-amaranthus.glitch.me/json?url=${encodeURIComponent(videoUrl)}`);
     const info = response.data;
 
     if (info.formats && Array.isArray(info.formats)) {

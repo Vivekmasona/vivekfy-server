@@ -117,75 +117,62 @@ app.get('/json', async (req, res) => {
 
 
 
+app.get('/apiv2', async (req, res) => {
+    const mediaUrl = req.query.url as string;
+    const index = parseInt(req.query.index as string, 10) - 1;
 
-
-// Function to extract URLs from nested data
-function extractUrls(data: any): string[] {
-  const urls: string[] = [];
-  if (Array.isArray(data)) {
-    for (const item of data) {
-      if (typeof item === 'object') {
-        urls.push(...extractUrls(item));
-      } else if (typeof item === 'string' && isValidUrl(item)) {
-        urls.push(item);
-      }
+    if (!mediaUrl) {
+        return res.status(400).json({ error: 'URL parameter is missing.' });
     }
-  } else if (typeof data === 'object') {
-    for (const key in data) {
-      if (data.hasOwnProperty(key)) {
-        urls.push(...extractUrls(data[key]));
-      }
+
+    const apiUrl = `https://social-media-video-downloader.p.rapidapi.com/smvd/get/all?url=${encodeURIComponent(mediaUrl)}`;
+
+    try {
+        const response = await axios.get(apiUrl, {
+            headers: {
+                'x-rapidapi-host': 'social-media-video-downloader.p.rapidapi.com',
+                'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
+            }
+        });
+
+        const data = response.data;
+
+        function extractUrls(data: any): string[] {
+            const urls: string[] = [];
+            if (Array.isArray(data)) {
+                data.forEach(value => {
+                    if (Array.isArray(value)) {
+                        urls.push(...extractUrls(value));
+                    } else if (typeof value === 'string' && isValidUrl(value)) {
+                        urls.push(value);
+                    }
+                });
+            }
+            return urls;
+        }
+
+        function isValidUrl(value: string): boolean {
+            try {
+                new URL(value);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+
+        const urls = extractUrls(data);
+
+        if (index >= 0 && index < urls.length) {
+            return res.redirect(urls[index]);
+        } else if (isNaN(index)) {
+            return res.json(urls);
+        } else {
+            return res.status(400).json({ error: 'Index out of bounds.' });
+        }
+    } catch (error) {
+        return res.status(500).json({ error: `API Error: ${error.message}` });
     }
-  }
-  return urls;
-}
-
-// Function to check if a string is a valid URL
-function isValidUrl(url: string): boolean {
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// Route to handle JSON response
-app.get('/saveall', async (req: Request, res: Response) => {
-  const videoUrl = req.query.url as string;
-
-  if (!videoUrl) {
-    return res.status(400).json({ error: 'URL parameter is missing.' });
-  }
-
-  try {
-    // Fetch JSON data from the API
-    const apiUrl = `https://social-media-video-downloader.p.rapidapi.com/smvd/get/all?url=${encodeURIComponent(videoUrl)}`;
-    const response = await axios.get(apiUrl, {
-      headers: {
-        'x-rapidapi-host': 'social-media-video-downloader.p.rapidapi.com',
-        'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
-      }
-    });
-
-    const data = response.data;
-
-    // Extract all URLs from the response
-    const urls = extractUrls(data);
-
-    if (urls.length > 0) {
-      // Return the extracted URLs as JSON
-      return res.json(urls);
-    } else {
-      // Handle case where no URLs are found
-      return res.status(404).json({ error: 'No URLs found in the response.' });
-    }
-  } catch (error) {
-    console.error('Error fetching data:', error); // Debugging
-    return res.status(500).json({ error: 'An error occurred while fetching data.' });
-  }
 });
-
 
 
 

@@ -33,18 +33,21 @@ app.get('/redirect', async (req: Request, res: Response) => {
     const response = await axios.get(`https://grape-earthy-amaranthus.glitch.me/json?url=${encodeURIComponent(videoUrl)}`);
     const info = response.data;
 
-    // Find the format with itag 250
-    const audioFormat = info.formats.find((format: any) => format.itag === 250);
+    // Filter for the format with itag 250 and codec opus
+    const audioFormat = info.formats.find((format: any) =>
+      format.itag === 250 && format.mimeType && format.mimeType.startsWith('audio/webm') && format.mimeType.includes('opus')
+    );
 
     if (audioFormat) {
       return res.redirect(audioFormat.url);
     }
 
-    res.send("Unable to find the audio format with itag 250 for playback.");
+    res.status(404).send("Unable to find the audio format with itag 250 and codec opus for playback.");
   } catch (error) {
-    res.send("An error occurred while fetching video info.");
+    res.status(500).send("An error occurred while fetching video info.");
   }
 });
+
 
 // /api endpoint
 app.get('/api', (req: Request, res: Response) => {

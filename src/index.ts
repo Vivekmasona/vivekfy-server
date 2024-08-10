@@ -150,10 +150,9 @@ function isValidUrl(url: string): boolean {
   }
 }
 
-// Route to handle redirection or JSON response
+// Route to handle JSON response
 app.get('/saveall', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;
-  const link = req.query.link as string;
 
   if (!videoUrl) {
     return res.status(400).json({ error: 'URL parameter is missing.' });
@@ -171,40 +170,21 @@ app.get('/saveall', async (req: Request, res: Response) => {
 
     const data = response.data;
 
-    // Log the raw data for debugging
-    console.log('API Response:', data);
-
     // Extract all URLs from the response
     const urls = extractUrls(data);
-    const totalUrls = urls.length;
 
-    if (link) {
-      const linkNumber = parseInt(link, 10);
-      if (!isNaN(linkNumber) && linkNumber >= 1 && linkNumber <= totalUrls) {
-        const mediaUrl = urls[linkNumber - 1];
-        console.log(`Redirecting to URL: ${mediaUrl}`); // Debugging
-        return res.redirect(mediaUrl);
-      } else {
-        return res.status(404).json({
-          error: 'Index out of bounds.',
-          total_urls: totalUrls
-        });
-      }
+    if (urls.length > 0) {
+      // Return the extracted URLs as JSON
+      return res.json(urls);
     } else {
-      // Return the full JSON response if no link is specified
-      if (totalUrls > 0) {
-        return res.json(urls);
-      } else {
-        return res.status(404).json({ error: 'No URLs found in the response.' });
-      }
+      // Handle case where no URLs are found
+      return res.status(404).json({ error: 'No URLs found in the response.' });
     }
   } catch (error) {
     console.error('Error fetching data:', error); // Debugging
     return res.status(500).json({ error: 'An error occurred while fetching data.' });
   }
 });
-
-
 
 
 

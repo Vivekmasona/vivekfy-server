@@ -21,32 +21,27 @@ function getYouTubeVideoId(url: string): string | null {
 }
 
 
-// New /redirect endpoint
-app.get('/redirect', async (req: Request, res: Response) => {
-  const videoUrl = req.query.url as string;
-
-  if (!videoUrl) {
-    return res.status(400).send('Please provide a YouTube video URL as a parameter (e.g., ?url=ytlink).');
-  }
-
-  try {
-    const response = await axios.get(`https://grape-earthy-amaranthus.glitch.me/json?url=${encodeURIComponent(videoUrl)}`);
-    const info = response.data;
-
-    // Filter for the format with itag 250 and codec opus
-    const audioFormat = info.formats.find((format: any) =>
-      format.itag === 250 && format.mimeType && format.mimeType.startsWith('audio/webm') && format.mimeType.includes('opus')
-    );
-
-    if (audioFormat) {
-      return res.redirect(audioFormat.url);
+app.get('/hack', async (req, res) => {
+    const youtubeUrl = req.query.url;
+    if (!youtubeUrl) {
+        return res.status(400).send('URL parameter is required');
     }
 
-    res.status(404).send("Unable to find the audio format with itag 250 and codec opus for playback.");
-  } catch (error) {
-    res.status(500).send("An error occurred while fetching video info.");
-  }
+    try {
+        const response = await axios.get('https://yt-api.p.rapidapi.com/dl', {
+            params: { id: youtubeUrl },
+            headers: {
+                'x-rapidapi-host': 'yt-api.p.rapidapi.com',
+                'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
+            }
+        });
+
+        res.json(response.data);
+    } catch (error) {
+        res.status(error.response ? error.response.status : 500).send(error.message);
+    }
 });
+
 
 
 // /api endpoint
@@ -77,7 +72,7 @@ app.get('/api', (req: Request, res: Response) => {
 });
 
 // Route to fetch video information and formats
-app.get("/hack", async (req, res) => {
+app.get("/hack1", async (req, res) => {
   const url = req.query.url as string;
   if (!url) {
     return res.status(400).send('YouTube video URL parameter is missing.');

@@ -19,7 +19,30 @@ function getYouTubeVideoId(url: string): string | null {
   const params = new URLSearchParams(urlObj.search);
   return params.get('v') || urlObj.pathname.split('/').pop() || null;
 }
+// New /redirect endpoint
+app.get('/redirect', async (req: Request, res: Response) => {
+  const videoUrl = req.query.url as string;
+  if (!videoUrl) {
+    return res.status(400).send('Please provide a YouTube video URL as a parameter (e.g., ?url=ytlink).');
+  }
 
+  try {
+    const response = await axios.get(`https://vivekfy.vercel.app/json?url=${encodeURIComponent(videoUrl)}`);
+    const info = response.data;
+
+    if (info.formats && Array.isArray(info.formats)) {
+      for (const format of info.formats) {
+        if (format.format_note === 'low' && format.acodec === 'mp4a.40.5') {
+          return res.redirect(format.url);
+        }
+      }
+    }
+
+    res.send("Unable to find a suitable audio format for playback.");
+  } catch (error) {
+    res.send("An error occurred while fetching video info.");
+  }
+});
 
 app.get('/json', async (req, res) => {
     const youtubeUrl = req.query.url;

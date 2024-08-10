@@ -86,6 +86,37 @@ app.get('/audio', async (req: Request, res: Response) => {
   }
 });
 
+app.get('/json', async (req, res) => {
+    const youtubeUrl = req.query.url;
+    if (!youtubeUrl) {
+        return res.status(400).send('URL parameter is required');
+    }
+
+    // Extract video ID from YouTube URL
+    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+    if (!videoId) {
+        return res.status(400).send('Invalid YouTube URL');
+    }
+
+    try {
+        const response = await axios.get('https://yt-api.p.rapidapi.com/dl', {
+            params: { id: videoId },
+            headers: {
+                'x-rapidapi-host': 'yt-api.p.rapidapi.com',
+                'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
+            }
+        });
+
+        res.json(response.data);
+    } catch (error) {
+        res.status(error.response ? error.response.status : 500).send(error.message);
+    }
+});
+
+
+
 
 
 // Function to extract URLs from nested data
@@ -93,11 +124,11 @@ function extractUrls(data: any): string[] {
   const urls: string[] = [];
   if (Array.isArray(data)) {
     for (const item of data) {
-      if (item.url && typeof item.url === 'string' && isValidUrl(item.url)) {
-        urls.push(item.url);
+      if (typeof item === 'object') {
+        urls.push(...extractUrls(item));
+      } else if (typeof item === 'string' && isValidUrl(item)) {
+        urls.push(item);
       }
-      // Recursively search in nested arrays
-      urls.push(...extractUrls(item));
     }
   } else if (typeof data === 'object') {
     for (const key in data) {
@@ -140,6 +171,9 @@ app.get('/saveall', async (req: Request, res: Response) => {
 
     const data = response.data;
 
+    // Log the raw data for debugging
+    console.log('API Response:', data);
+
     // Extract all URLs from the response
     const urls = extractUrls(data);
     const totalUrls = urls.length;
@@ -174,34 +208,6 @@ app.get('/saveall', async (req: Request, res: Response) => {
 
 
 
-app.get('/json', async (req, res) => {
-    const youtubeUrl = req.query.url;
-    if (!youtubeUrl) {
-        return res.status(400).send('URL parameter is required');
-    }
-
-    // Extract video ID from YouTube URL
-    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    const videoId = videoIdMatch ? videoIdMatch[1] : null;
-
-    if (!videoId) {
-        return res.status(400).send('Invalid YouTube URL');
-    }
-
-    try {
-        const response = await axios.get('https://yt-api.p.rapidapi.com/dl', {
-            params: { id: videoId },
-            headers: {
-                'x-rapidapi-host': 'yt-api.p.rapidapi.com',
-                'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
-            }
-        });
-
-        res.json(response.data);
-    } catch (error) {
-        res.status(error.response ? error.response.status : 500).send(error.message);
-    }
-});
 
 
 

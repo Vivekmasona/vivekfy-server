@@ -86,7 +86,68 @@ app.get('/redirect', async (req: Request, res: Response) => {
   }
 });
 
+// Function to extract URLs from nested data
+function extractUrls(data: any): string[] {
+  const urls: string[] = [];
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      if (item.url) {
+        urls.push(item.url);
+      }
+      // Recursively search in nested arrays
+      urls.push(...extractUrls(item));
+    }
+  } else if (typeof data === 'object') {
+    for (const key in data) {
+      if (data.hasOwnProperty(key)) {
+        urls.push(...extractUrls(data[key]));
+      }
+    }
+  }
+  return urls;
+}
 
+// Route to handle redirection or JSON response
+app.get('/saveall', async (req: Request, res: Response) => {
+  const videoUrl = req.query.url as string;
+  const link = req.query.link as string;
+
+  if (!videoUrl) {
+    return res.status(400).json({ error: 'Please provide a YouTube video URL as a parameter (e.g., ?url=ytlink).' });
+  }
+
+  try {
+    // Fetch JSON data from the API
+    const response = await axios.get(`https://vivekfy.vercel.app/json?url=${encodeURIComponent(videoUrl)}`);
+    const info = response.data;
+
+    // Extract all URLs from the response
+    const urls = extractUrls(info);
+
+    if (link) {
+      // Convert link to a number and validate
+      const linkNumber = parseInt(link, 10);
+      if (!isNaN(linkNumber)) {
+        // Check if the linkNumber is within bounds
+        if (linkNumber >= 1 && linkNumber <= urls.length) {
+          const mediaUrl = urls[linkNumber - 1];
+          console.log(`Redirecting to URL: ${mediaUrl}`); // Debugging
+          return res.redirect(mediaUrl);
+        } else {
+          return res.status(404).json({ error: 'Link out of bounds. Total URLs: ' + urls.length });
+        }
+      } else {
+        return res.status(400).json({ error: 'Invalid link format.' });
+      }
+    } else {
+      // Return the full JSON response if no link is specified
+      return res.json(info);
+    }
+  } catch (error) {
+    console.error('Error fetching video info:', error); // Debugging
+    return res.status(500).json({ error: 'An error occurred while fetching video info.' });
+  }
+});
 
 
 app.get('/json', async (req, res) => {

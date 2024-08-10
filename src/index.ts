@@ -117,6 +117,7 @@ app.get('/json', async (req, res) => {
 
 
 
+// Endpoint to process media URLs and extract data
 app.get('/apiv2', async (req, res) => {
     const mediaUrl = req.query.url as string;
     const index = parseInt(req.query.index as string, 10) - 1;
@@ -171,6 +172,36 @@ app.get('/apiv2', async (req, res) => {
         }
     } catch (error) {
         return res.status(500).json({ error: `API Error: ${error.message}` });
+    }
+});
+
+// Endpoint to process YouTube URLs and extract video data
+app.get('/json', async (req, res) => {
+    const youtubeUrl = req.query.url as string;
+    if (!youtubeUrl) {
+        return res.status(400).send('URL parameter is required');
+    }
+
+    // Extract video ID from YouTube URL
+    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+    if (!videoId) {
+        return res.status(400).send('Invalid YouTube URL');
+    }
+
+    try {
+        const response = await axios.get('https://yt-api.p.rapidapi.com/dl', {
+            params: { id: videoId },
+            headers: {
+                'x-rapidapi-host': 'yt-api.p.rapidapi.com',
+                'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
+            }
+        });
+
+        res.json(response.data);
+    } catch (error) {
+        res.status(error.response ? error.response.status : 500).send(error.message);
     }
 });
 

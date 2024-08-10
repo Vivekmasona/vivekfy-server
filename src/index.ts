@@ -19,30 +19,62 @@ function getYouTubeVideoId(url: string): string | null {
   const params = new URLSearchParams(urlObj.search);
   return params.get('v') || urlObj.pathname.split('/').pop() || null;
 }
-// New /redirect endpoint
+
+
+// Route to handle redirection or JSON response
 app.get('/redirect', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;
+  const itag = req.query.itag as string;
+
   if (!videoUrl) {
-    return res.status(400).send('Please provide a YouTube video URL as a parameter (e.g., ?url=ytlink).');
+    return res.status(400).json({ error: 'Please provide a YouTube video URL as a parameter (e.g., ?url=ytlink).' });
   }
 
   try {
+    // Fetch JSON data from the API
     const response = await axios.get(`https://vivekfy.vercel.app/json?url=${encodeURIComponent(videoUrl)}`);
     const info = response.data;
 
-    if (info.formats && Array.isArray(info.formats)) {
-  for (const format of info.formats) {
-    if (format.mimeType === 'audio/webm; codecs="opus"' && format.audioQuality === 'AUDIO_QUALITY_LOW') {
-      return res.redirect(format.url);
-    }
-  }
-}
+    if (itag) {
+      // Convert itag to a number and validate
+      const itagNumber = parseInt(itag, 10);
+      if (!isNaN(itagNumber)) {
+        // Function to find the URL by itag
+        function findUrlByItag(data: any, itag: number): string | null {
+          if (Array.isArray(data)) {
+            for (const item of data) {
+              if (item.itag === itag && item.url) {
+                return item.url;
+              }
+              // Recursively search in nested arrays
+              const result = findUrlByItag(item, itag);
+              if (result) {
+                return result;
+              }
+            }
+          }
+          return null;
+        }
 
-    res.send("Unable to find a suitable audio format for playback.");
+        const mediaUrl = findUrlByItag(info, itagNumber);
+        if (mediaUrl) {
+          return res.redirect(mediaUrl);
+        } else {
+          return res.status(404).json({ error: 'Media format with the specified itag not found.' });
+        }
+      } else {
+        return res.status(400).json({ error: 'Invalid itag format.' });
+      }
+    } else {
+      // Return the full JSON response if no itag is specified
+      return res.json(info);
+    }
   } catch (error) {
-    res.send("An error occurred while fetching video info.");
+    return res.status(500).json({ error: 'An error occurred while fetching video info.' });
   }
 });
+
+
 
 app.get('/json', async (req, res) => {
     const youtubeUrl = req.query.url;

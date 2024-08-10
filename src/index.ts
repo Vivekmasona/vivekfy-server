@@ -31,12 +31,12 @@ app.get('/redirect', async (req: Request, res: Response) => {
     const info = response.data;
 
     if (info.formats && Array.isArray(info.formats)) {
-      for (const format of info.formats) {
-        if (format.format_note === 'low' && format.acodec === 'mp4a.40.5') {
-          return res.redirect(format.url);
-        }
-      }
+  for (const format of info.formats) {
+    if (format.mimeType === 'audio/webm; codecs="opus"' && format.audioQuality === 'AUDIO_QUALITY_LOW') {
+      return res.redirect(format.url);
     }
+  }
+}
 
     res.send("Unable to find a suitable audio format for playback.");
   } catch (error) {

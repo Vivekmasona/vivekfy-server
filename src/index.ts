@@ -117,93 +117,9 @@ app.get('/json', async (req, res) => {
 
 
 
-// Endpoint to process media URLs and extract data
-app.get('/apiv2', async (req, res) => {
-    const mediaUrl = req.query.url as string;
-    const index = parseInt(req.query.index as string, 10) - 1;
 
-    if (!mediaUrl) {
-        return res.status(400).json({ error: 'URL parameter is missing.' });
-    }
+        
 
-    const apiUrl = `https://social-media-video-downloader.p.rapidapi.com/smvd/get/all?url=${encodeURIComponent(mediaUrl)}`;
-
-    try {
-        const response = await axios.get(apiUrl, {
-            headers: {
-                'x-rapidapi-host': 'social-media-video-downloader.p.rapidapi.com',
-                'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
-            }
-        });
-
-        const data = response.data;
-
-        function extractUrls(data: any): string[] {
-            const urls: string[] = [];
-            if (Array.isArray(data)) {
-                data.forEach(value => {
-                    if (Array.isArray(value)) {
-                        urls.push(...extractUrls(value));
-                    } else if (typeof value === 'string' && isValidUrl(value)) {
-                        urls.push(value);
-                    }
-                });
-            }
-            return urls;
-        }
-
-        function isValidUrl(value: string): boolean {
-            try {
-                new URL(value);
-                return true;
-            } catch {
-                return false;
-            }
-        }
-
-        const urls = extractUrls(data);
-
-        if (index >= 0 && index < urls.length) {
-            return res.redirect(urls[index]);
-        } else if (isNaN(index)) {
-            return res.json(urls);
-        } else {
-            return res.status(400).json({ error: 'Index out of bounds.' });
-        }
-    } catch (error) {
-        return res.status(500).json({ error: `API Error: ${error.message}` });
-    }
-});
-
-// Endpoint to process YouTube URLs and extract video data
-app.get('/json', async (req, res) => {
-    const youtubeUrl = req.query.url as string;
-    if (!youtubeUrl) {
-        return res.status(400).send('URL parameter is required');
-    }
-
-    // Extract video ID from YouTube URL
-    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    const videoId = videoIdMatch ? videoIdMatch[1] : null;
-
-    if (!videoId) {
-        return res.status(400).send('Invalid YouTube URL');
-    }
-
-    try {
-        const response = await axios.get('https://yt-api.p.rapidapi.com/dl', {
-            params: { id: videoId },
-            headers: {
-                'x-rapidapi-host': 'yt-api.p.rapidapi.com',
-                'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
-            }
-        });
-
-        res.json(response.data);
-    } catch (error) {
-        res.status(error.response ? error.response.status : 500).send(error.message);
-    }
-});
 
 
 
@@ -237,183 +153,62 @@ app.get('/api', (req: Request, res: Response) => {
 });
 
 
-app.get('/api1', async (req: Request, res: Response) => {
-  const link: string = req.query.url ? sanitizeURL(req.query.url as string) : '';
-
-  if (link) {
-    let serverLink: string;
-
-    if (link.includes('youtu.be') || link.includes('youtube.com')) {
-      serverLink = `https://vivekfy.fanclub.rocks/audio?url=${link}`;
-    } else if (link.includes('facebook.com')) {
-      serverLink = `https://vivekfy.fanclub.rocks/api/server/fb?link=${link}`;
-    } else if (link.includes('instagram.com')) {
-      serverLink = `https://vivekfy.fanclub.rocks/api/server/insta?link=${link}`;
-    } else {
-      res.status(400).send('Unsupported service');
-      return;
+app.get('/download', async (req, res) => {
+    const mediaUrl = req.query.url;
+    if (!mediaUrl) {
+        return res.status(400).json({ error: 'URL parameter is missing.' });
     }
 
+    const apiUrl = `https://social-media-video-downloader.p.rapidapi.com/smvd/get/all?url=${encodeURIComponent(mediaUrl)}`;
     try {
-      const response = await axios.get(serverLink, { responseType: 'arraybuffer' });
-      res.setHeader('Content-Type', response.headers['content-type']);
-      res.send(response.data);
+        const response = await axios.get(apiUrl, {
+            headers: {
+                "x-rapidapi-host": "social-media-video-downloader.p.rapidapi.com",
+                "x-rapidapi-key": "650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a"
+            }
+        });
+
+        const data = response.data;
+
+        const extractUrls = (obj) => {
+            let urls = [];
+            if (Array.isArray(obj)) {
+                obj.forEach(item => {
+                    urls = urls.concat(extractUrls(item));
+                });
+            } else if (typeof obj === 'object' && obj !== null) {
+                Object.values(obj).forEach(value => {
+                    urls = urls.concat(extractUrls(value));
+                });
+            } else if (typeof obj === 'string' && obj.startsWith('http')) {
+                urls.push(obj);
+            }
+            return urls;
+        };
+
+        const urls = extractUrls(data);
+        const totalUrls = urls.length;
+        const index = req.query.index ? parseInt(req.query.index, 10) - 1 : null;
+
+        if (index !== null) {
+            if (index >= 0 && index < totalUrls) {
+                return res.redirect(urls[index]);
+            } else {
+                return res.status(400).json({ error: 'Index out of bounds.', total_urls: totalUrls });
+            }
+        } else {
+            if (urls.length > 0) {
+                return res.json(urls);
+            } else {
+                return res.status(400).json({ error: 'No URLs found in the response.' });
+            }
+        }
     } catch (error) {
-      res.status(500).send('Error processing request');
+        return res.status(500).json({ error: error.message });
     }
-  } else {
-    res.status(400).send('Invalid URL');
-  }
 });
 
-// Helper function to sanitize URLs
-function sanitizeURL(url: string): string {
-  // Implement URL sanitization logic here
-  return url;
-}
 
-
-
-
-
-// Route to fetch video information and formats
-app.get("/hack1", async (req, res) => {
-  const url = req.query.url as string;
-  if (!url) {
-    return res.status(400).send('YouTube video URL parameter is missing.');
-  }
-
-  try {
-    const info = await ytdl.getInfo(url);
-    const { title, thumbnails, formats } = info.videoDetails;
-    const thumbnail = thumbnails[0].url;
-    const audioFormats = ytdl.filterFormats(formats, 'audioonly');
-    const filteredFormats = formats.filter(format => format.hasAudio);
-
-    res.json({ title, thumbnail, audioFormats, formats: filteredFormats });
-  } catch (error) {
-    res.status(500).send('Error fetching video info.');
-  }
-});
-
-// Route to get direct video playback URL
-app.get('/video', async (req, res) => {
-  const ytUrl = req.query.url as string;
-  if (!ytUrl) {
-    return res.status(400).send('YouTube video URL parameter is missing.');
-  }
-
-  try {
-    const info = await ytdl.getInfo(ytUrl);
-    const videoInfo = ytdl.chooseFormat(info.formats, { quality: 'highest' });
-    const videoplaybackUrl = videoInfo.url;
-
-    res.redirect(videoplaybackUrl);
-  } catch (error) {
-    res.status(500).send('Error fetching videoplayback URL.');
-  }
-});
-
-// Route to get direct low-quality audio stream URL
-app.get('/audio1', async (req, res) => {
-  const ytUrl = req.query.url as string;
-  if (!ytUrl) {
-    return res.status(400).send('YouTube video URL parameter is missing.');
-  }
-
-  try {
-    const info = await ytdl.getInfo(ytUrl);
-    const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-
-    if (audioFormats.length === 0) {
-      return res.status(404).send('No audio stream found for this video.');
-    }
-
-    const lowestQualityAudio = audioFormats.reduce((lowest, format) => {
-      return format.audioBitrate < lowest.audioBitrate ? format : lowest;
-    });
-
-    res.redirect(lowestQualityAudio.url);
-  } catch (error) {
-    res.status(500).send('Error fetching low-quality audio stream URL.');
-  }
-});
-
-// Route for downloading audio
-app.get('/download/audio', async (req, res) => {
-  const videoURL = req.query.url as string;
-  if (!videoURL) {
-    return res.status(400).send('Missing video URL');
-  }
-
-  try {
-    const info = await ytdl.getInfo(videoURL);
-    const videoTitle = info.videoDetails.title.replace(/[^\w\s]/gi, '');
-    const sanitizedTitle = videoTitle || 'audio';
-    const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-    const format = audioFormats[0];
-
-    if (!format) {
-      return res.status(404).send('No suitable audio format found');
-    }
-
-    res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}(vivek masona).mp3"`);
-    res.setHeader('Content-Type', 'audio/mpeg');
-    format.contentLength && res.setHeader('Content-Length', format.contentLength);
-
-    ytdl(videoURL, { format }).pipe(res);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).send('Internal Server Error');
-  }
-});
-
-// Route for downloading video
-app.get('/download/video', async (req, res) => {
-  const videoURL = req.query.url as string;
-  if (!videoURL) {
-    return res.status(400).send('Missing video URL');
-  }
-
-  try {
-    const info = await ytdl.getInfo(videoURL);
-    const videoTitle = info.videoDetails.title.replace(/[^\w\s]/gi, '');
-    const sanitizedTitle = videoTitle || 'video';
-    const format = ytdl.chooseFormat(info.formats, { quality: 'highest' });
-
-    if (!format) {
-      return res.status(404).send('No suitable video format found');
-    }
-
-    res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}(vivek masona).mp4"`);
-    res.setHeader('Content-Type', 'video/mp4');
-    format.contentLength && res.setHeader('Content-Length', format.contentLength);
-
-    ytdl(videoURL, { format }).pipe(res);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).send('Internal Server Error');
-  }
-});
-
-// Route to download low-quality audio
-app.get("/low-audio", async (req, res) => {
-  const url = req.query.url as string;
-  if (!url) {
-    return res.status(400).send('YouTube video URL parameter is missing.');
-  }
-
-  try {
-    ytdl(url, {
-      format: 'mp3',
-      filter: 'audioonly',
-      quality: 'lowest'
-    }).pipe(res);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Error fetching low-quality audio.');
-  }
-});
 
 // Route for streaming YouTube audio in OPUS format via a third-party API
 app.get('/stream', async (req: Request, res: Response) => {
@@ -448,46 +243,7 @@ app.get('/stream', async (req: Request, res: Response) => {
   }
 });
 
-// Route to download video
-app.get("/download", function(req, res){
-  const URL = req.query.URL as string;
-  const sanitizedTitle = 'video'; // You should define a proper sanitizedTitle
 
-  if (!URL) {
-    return res.status(400).send('Missing video URL');
-  }
-
-  res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}(vivek masona).mp4"`);
-  ytdl(URL, { format: 'mp4' }).pipe(res);
-});
-
-// Route for direct media download via a third-party API
-app.get('/savevideo', async (req: Request, res: Response) => {
-  const videoUrl = req.query.url as string;
-
-  if (!videoUrl) {
-    return res.status(400).send('Please provide a valid URL as a query parameter');
-  }
-
-  const provider = 'https://api.cobalt.tools/api/json'; // Default Cobalt API endpoint
-
-  try {
-    const response = await axios.post(provider, {
-      url: videoUrl,
-      isAudioOnly: false, // Set to false to download video
-      aFormat: 'mp4',    // Change format to mp4 or desired video format
-      filenamePattern: 'basic'
-    }, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
-    });
-
-    const result = response.data;
-    res.redirect(result.url);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to download media: ' + error.message });
-  }
-});
 
 // Route for direct media download via a third-party API
 app.get('/saveaudio', async (req: Request, res: Response) => {
@@ -517,36 +273,7 @@ app.get('/saveaudio', async (req: Request, res: Response) => {
   }
 });
 
-// Route for direct audio download via a third-party API
-app.get('/dl', async (req: Request, res: Response) => {
-  const videoUrl = req.query.url as string;
-  if (!videoUrl) {
-    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
-  }
 
-  const videoId = getYouTubeVideoId(videoUrl);
-  if (!videoId) {
-    return res.status(400).send('Invalid YouTube video URL');
-  }
-
-  const provider = 'https://api.cobalt.tools/api/json';
-  const streamUrl = `https://youtu.be/${videoId}`;
-  try {
-    const response = await axios.post(provider, {
-      url: streamUrl,
-      isAudioOnly: true,
-      aFormat: 'mp3',
-      filenamePattern: 'basic'
-    }, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
-    });
-const result = response.data;
-    res.redirect(result.url);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to download audio: ' + error.message });
-  }
-});
 app.get('/img', async (req: Request, res: Response) => {
     const videoId = req.query.videoId;
 

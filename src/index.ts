@@ -244,6 +244,33 @@ app.get('/stream', async (req: Request, res: Response) => {
 });
 
 
+// Route for direct media download via a third-party API
+app.get('/savevideo', async (req: Request, res: Response) => {
+  const videoUrl = req.query.url as string;
+
+  if (!videoUrl) {
+    return res.status(400).send('Please provide a valid URL as a query parameter');
+  }
+
+  const provider = 'https://api.cobalt.tools/api/json'; // Default Cobalt API endpoint
+
+  try {
+    const response = await axios.post(provider, {
+      url: videoUrl,
+      isAudioOnly: false, // Set to false to download video
+      aFormat: 'mp4',    // Change format to mp4 or desired video format
+      filenamePattern: 'basic'
+    }, {
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    });
+
+    const result = response.data;
+    res.redirect(result.url);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to download media: ' + error.message });
+  }
+});
 
 // Route for direct media download via a third-party API
 app.get('/saveaudio', async (req: Request, res: Response) => {

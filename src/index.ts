@@ -221,7 +221,7 @@ app.get('/cdn', async (req, res) => {
 });
 
 
-app.get('/api', async (req, res) => {
+app.get('/download-v2', async (req, res) => {
     const mediaUrl = req.query.url;
 
     if (!mediaUrl) {
@@ -283,31 +283,39 @@ app.get('/api', async (req, res) => {
 
 
 
-// /api endpoint
-app.get('/api2', (req: Request, res: Response) => {
-  const link: string = req.query.url ? sanitizeURL(req.query.url as string) : '';
+// Endpoint to handle different platforms
+app.get('/api', (req: Request, res: Response) => {
+    const link: string = req.query.url ? sanitizeURL(req.query.url as string) : '';
 
-  if (link) {
-    let serverLink: string;
+    if (link) {
+        let serverLink: string;
 
-    if (link.includes('youtu.be') || link.includes('youtube.com')) {
-      serverLink = `https://vivekfy.fanclub.rocks/audio?url=${link}`;
-    } else if (link.includes('facebook.com')) {
-      serverLink = `https://vivekfy.fanclub.rocks/api/server/fb?link=${link}`;
-    } else if (link.includes('instagram.com')) {
-      serverLink = `https://vivekfy.fanclub.rocks/api/server/insta?link=${link}`;
+        if (link.includes('youtu.be') || link.includes('youtube.com')) {
+            serverLink = `https://vivekfy.vercel.app/download?index=22&url=${link}`;
+        } else if (link.includes('facebook.com')) {
+            serverLink = `https://vivekfy.vercel.app/download?index=8&url=${link}`;
+        } else if (link.includes('instagram.com')) {
+            serverLink = `https://vivekfy.vercel.app/download?index=4&url=${link}`;
+        } else if (link.includes('twitter.com') || link.includes('x.com')) {
+            serverLink = `https://vivekfy.vercel.app/download-v2?index=2&url=${link}`;
+        } else if (link.includes('pinterest.com') || link.includes('pin.it')) {
+            serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
+        } else if (link.includes('vimeo.com')) {
+            serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
+        } else if (link.includes('dailymotion.com') || link.includes('dai.ly')) {
+            serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
+        } else {
+            serverLink = 'Unsupported service';
+        }
+
+        if (serverLink !== 'Unsupported service') {
+            res.redirect(serverLink);
+        } else {
+            res.send(serverLink);
+        }
     } else {
-      serverLink = 'Unsupported service';
+        res.send('Invalid URL');
     }
-
-    if (serverLink !== 'Unsupported service') {
-      res.redirect(serverLink);
-    } else {
-      res.send(serverLink);
-    }
-  } else {
-    res.send('Invalid URL');
-  }
 });
 
 

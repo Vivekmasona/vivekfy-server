@@ -194,6 +194,33 @@ app.get('/audio-dl', async (req, res) => {
 });
 
 
+app.get('/cdn', async (req, res) => {
+    const mediaUrl = req.query.url;
+
+    if (!mediaUrl) {
+        return res.status(400).send('URL parameter is required');
+    }
+
+    try {
+        const response = await axios.post('https://all-media-downloader.p.rapidapi.com/download', 
+            `-----011000010111000001101001\r\nContent-Disposition: form-data; name="url"\r\n\r\n${mediaUrl}\r\n-----011000010111000001101001--\r\n\r\n`, 
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data; boundary=---011000010111000001101001',
+                    'x-rapidapi-host': 'all-media-downloader.p.rapidapi.com',
+                    'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
+                }
+            }
+        );
+
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error fetching media data:', error.message);
+        res.status(error.response ? error.response.status : 500).send(error.message);
+    }
+});
+
+
 
 
 

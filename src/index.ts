@@ -221,11 +221,70 @@ app.get('/cdn', async (req, res) => {
 });
 
 
+app.get('/api', async (req, res) => {
+    const mediaUrl = req.query.url;
+
+    if (!mediaUrl) {
+        return res.status(400).json({ error: 'URL parameter is missing.' });
+    }
+
+    const apiUrl = "https://all-media-downloader.p.rapidapi.com/download";
+    
+    const formData = `-----011000010111000001101001\r\nContent-Disposition: form-data; name="url"\r\n\r\n${mediaUrl}\r\n-----011000010111000001101001--\r\n\r\n`;
+
+    try {
+        const response = await axios.post(apiUrl, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data; boundary=---011000010111000001101001",
+                "x-rapidapi-host": "all-media-downloader.p.rapidapi.com",
+                "x-rapidapi-key": "650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a"
+            }
+        });
+
+        const data = response.data;
+
+        const extractUrls = (obj) => {
+            let urls = [];
+            if (Array.isArray(obj)) {
+                obj.forEach(item => {
+                    urls = urls.concat(extractUrls(item));
+                });
+            } else if (typeof obj === 'object' && obj !== null) {
+                Object.values(obj).forEach(value => {
+                    urls = urls.concat(extractUrls(value));
+                });
+            } else if (typeof obj === 'string' && obj.startsWith('http')) {
+                urls.push(obj);
+            }
+            return urls;
+        };
+
+        const urls = extractUrls(data);
+        const totalUrls = urls.length;
+        const index = req.query.index ? parseInt(req.query.index, 10) - 1 : null;
+
+        if (index !== null) {
+            if (index >= 0 && index < totalUrls) {
+                return res.redirect(urls[index]);
+            } else {
+                return res.status(400).json({ error: 'Index out of bounds.', total_urls: totalUrls });
+            }
+        } else {
+            if (urls.length > 0) {
+                return res.json(urls);
+            } else {
+                return res.status(400).json({ error: 'No URLs found in the response.' });
+            }
+        }
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+});
 
 
 
 // /api endpoint
-app.get('/api', (req: Request, res: Response) => {
+app.get('/api2', (req: Request, res: Response) => {
   const link: string = req.query.url ? sanitizeURL(req.query.url as string) : '';
 
   if (link) {

@@ -86,44 +86,6 @@ app.get('/audio', async (req: Request, res: Response) => {
   }
 });
 
-// Route to handle redirection or JSON response
-app.get('/audio-dl', async (req: Request, res: Response) => {
-  const videoUrl = req.query.url as string;
-  const itag = req.query.itag as string;
-
-  if (!videoUrl) {
-    return res.status(400).json({ error: 'Please provide a YouTube video URL as a parameter (e.g., ?url=ytlink).' });
-  }
-
-  try {
-    // Fetch JSON data from the API
-    const response = await axios.get(`https://vivekfy.vercel.app/json3?url=${encodeURIComponent(videoUrl)}`);
-    const info = response.data;
-
-    if (itag) {
-      // Convert itag to a number and validate
-      const itagNumber = parseInt(itag, 10);
-      if (!isNaN(itagNumber)) {
-        // Find the URL by itag
-        const mediaUrl = findUrlByItag(info, itagNumber);
-        if (mediaUrl) {
-          console.log(`Redirecting to URL: ${mediaUrl}`); // Debugging
-          return res.redirect(mediaUrl);
-        } else {
-          return res.status(404).json({ error: 'Media format with the specified itag not found.' });
-        }
-      } else {
-        return res.status(400).json({ error: 'Invalid itag format.' });
-      }
-    } else {
-      // Return the full JSON response if no itag is specified
-      return res.json(info);
-    }
-  } catch (error) {
-    console.error('Error fetching video info:', error); // Debugging
-    return res.status(500).json({ error: 'An error occurred while fetching video info.' });
-  }
-});
 
 
 app.get('/json', async (req, res) => {
@@ -192,7 +154,8 @@ app.get('/json2', async (req, res) => {
     }
 });
 
-app.get('/json3', async (req, res) => {
+
+app.get('/audio-dl', async (req, res) => {
     const youtubeUrl = req.query.url;
 
     if (!youtubeUrl) {
@@ -216,7 +179,14 @@ app.get('/json3', async (req, res) => {
             }
         });
 
-        res.json(response.data);
+        // Assuming the response contains a field 'link' with the redirect URL
+        const downloadUrl = response.data.link;
+
+        if (downloadUrl) {
+            res.redirect(downloadUrl);
+        } else {
+            res.status(500).send('Download URL not found in response');
+        }
     } catch (error) {
         console.error('Error fetching YouTube data:', error.message);
         res.status(error.response ? error.response.status : 500).send(error.message);

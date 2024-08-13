@@ -542,64 +542,55 @@ app.get('/img', async (req: Request, res: Response) => {
 });
 
 
-// Endpoint to handle AI questions via GET request
-app.get('/gemini', async (req, res) => {
-    const question = req.query.questions;
-    if (!question) {
-        return res.status(400).send('questions parameter is required');
-    }
 
-    const API_KEY = 'AIzaSyAMcFfiJw8hR-aAtjbAXUODVCoeq_hqCbE'; // Replace with your actual API key
-    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
+const CARTESIA_API_KEY = '145eed69-d094-4f2e-b8cb-cd17b8daff32';
+const VOICE_ID = 'cd17ff2d-5ea4-4695-be8f-42193949b946';
 
-    try {
-        const response = await axios.post(`${API_URL}?key=${API_KEY}`, {
-            contents: [{ role: 'user', parts: [{ text: question }] }],
-            generationConfig: {
-                temperature: 1,
-                topP: 0.95,
-                topK: 64,
-                maxOutputTokens: 8192,
-            },
-        });
+app.get('/tts', async (req, res) => {
+  const { text } = req.query;
 
-        res.json(response.data);
-    } catch (error) {
-        res.status(error.response ? error.response.status : 500).send(error.message);
-    }
+  if (!text) {
+    return res.status(400).json({ error: 'Text query parameter is required' });
+  }
+
+  try {
+    const response = await axios.post(
+      'https://api.cartesia.ai/tts/bytes',
+      {
+        model_id: 'sonic-english',
+        transcript: text,
+        voice: {
+          mode: 'id',
+          id: VOICE_ID,
+        },
+        output_format: {
+          container: 'wav', // Changed to 'wav' for better compatibility
+          encoding: 'pcm_f32le',
+          sample_rate: 24000,
+        },
+      },
+      {
+        headers: {
+          'Cartesia-Version': '2024-06-30',
+          'Content-Type': 'application/json',
+          'X-API-Key': CARTESIA_API_KEY,
+        },
+        responseType: 'stream', // Ensuring the response is treated as a stream
+      }
+    );
+
+    // Set headers to ensure proper handling of the audio data
+    res.setHeader('Content-Type', 'audio/wav');
+    res.setHeader('Content-Disposition', 'inline; filename="output.wav"');
+
+    // Pipe the audio stream directly to the client
+    response.data.pipe(res);
+  } catch (error) {
+    console.error('Error generating TTS:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Voice synthesis failed' });
+  }
 });
 
-
-// Endpoint to handle AI questions via GET request
-app.get('/ai', async (req, res) => {
-    const question = req.query.questions;
-    if (!question) {
-        return res.status(400).send('questions parameter is required');
-    }
-
-    const API_KEY = 'AIzaSyAMcFfiJw8hR-aAtjbAXUODVCoeq_hqCbE'; // Replace with your actual API key
-    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
-
-    try {
-        // Send the question to the AI model
-        const response = await axios.post(`${API_URL}?key=${API_KEY}`, {
-            contents: [{ role: 'user', parts: [{ text: question }] }],
-            generationConfig: {
-                temperature: 1,
-                topP: 0.95,
-                topK: 64,
-                maxOutputTokens: 8192,
-            },
-        });
-
-        const botReply = response.data.candidates[0].content.parts[0].text;
-
-        // Redirect to TTS API with the AI's response text
-        res.redirect(`https://vivekfy.vercel.app/tts?text=${encodeURIComponent(botReply)}`);
-    } catch (error) {
-        res.status(error.response ? error.response.status : 500).send(error.message);
-    }
-});
 
 
 

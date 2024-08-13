@@ -131,7 +131,7 @@ app.get('/tts', async (req: Request, res: Response) => {
             {
                 model: 'tts-1',
                 input: query,
-                voice: 'alloy'
+                voice: 'nova'
             },
             {
                 headers: {

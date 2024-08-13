@@ -118,6 +118,7 @@ app.get('/json', async (req, res) => {
 });
 
 
+
 app.get('/tts', async (req: Request, res: Response) => {
     const text: string | undefined = req.query.text as string;
 
@@ -146,22 +147,26 @@ app.get('/tts', async (req: Request, res: Response) => {
                     'Content-Type': 'application/json',
                     'x-rapidapi-host': 'joj-text-to-speech.p.rapidapi.com',
                     'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
-                },
-                responseType: 'arraybuffer' // To handle the binary MP3 data
+                }
             }
         );
 
-        const audioData = response.data;
+        const base64Audio = response.data.audioContent;
+
+        // Decode the base64-encoded audio content
+        const audioBuffer = Buffer.from(base64Audio, 'base64');
 
         // Set the appropriate headers to serve the audio file
         res.setHeader('Content-Type', 'audio/mpeg');
-        res.send(audioData);
+        res.setHeader('Content-Length', audioBuffer.length.toString());
+
+        // Send the audio buffer as the response
+        res.send(audioBuffer);
     } catch (error) {
         console.error('Error fetching TTS data:', error.message);
         res.status(error.response ? error.response.status : 500).send(error.message);
     }
 });
-
 
         
 

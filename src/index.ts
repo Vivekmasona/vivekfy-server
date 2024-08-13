@@ -119,27 +119,35 @@ app.get('/json', async (req, res) => {
 
 
 app.get('/tts', async (req: Request, res: Response) => {
-    const query: string | undefined = req.query.query as string;
+    const text: string | undefined = req.query.text as string;
 
-    if (!query) {
-        return res.status(400).send('Query parameter is required');
+    if (!text) {
+        return res.status(400).send('Text query parameter is required');
     }
 
     try {
         const response = await axios.post(
-            'https://open-ai-text-to-speech1.p.rapidapi.com/',
+            'https://joj-text-to-speech.p.rapidapi.com/',
             {
-                model: 'tts-1',
-                input: query,
-                voice: 'nova'
+                input: {
+                    text: text
+                },
+                voice: {
+                    languageCode: 'en-US',
+                    name: 'en-US-News-L',
+                    ssmlGender: 'FEMALE'
+                },
+                audioConfig: {
+                    audioEncoding: 'MP3'
+                }
             },
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-rapidapi-host': 'open-ai-text-to-speech1.p.rapidapi.com',
+                    'x-rapidapi-host': 'joj-text-to-speech.p.rapidapi.com',
                     'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
                 },
-                responseType: 'arraybuffer' // Ensure the response is treated as binary data
+                responseType: 'arraybuffer' // To handle the binary MP3 data
             }
         );
 
@@ -153,6 +161,7 @@ app.get('/tts', async (req: Request, res: Response) => {
         res.status(error.response ? error.response.status : 500).send(error.message);
     }
 });
+
 
         
 

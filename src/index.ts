@@ -528,6 +528,42 @@ app.get('/img', async (req: Request, res: Response) => {
 });
 
 
+// Endpoint to handle AI questions via GET request
+app.get('/ai', async (req, res) => {
+    const userQuestion = req.query.questions;
+    const API_KEY = 'AIzaSyAMcFfiJw8hR-aAtjbAXUODVCoeq_hqCbE'; // Replace with your actual API key
+    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
+
+    if (!userQuestion) {
+        return res.status(400).send('Missing "questions" query parameter.');
+    }
+
+    try {
+        // Send the question to the AI model
+        const response = await axios.post(`${API_URL}?key=${API_KEY}`, {
+            contents: [{ role: 'user', parts: [{ text: userQuestion }] }],
+            generationConfig: {
+                temperature: 1,
+                topP: 0.95,
+                topK: 64,
+                maxOutputTokens: 8192,
+            },
+        });
+
+        const botReply = response.data.candidates[0].content.parts[0].text;
+
+        // Redirect to TTS API
+        res.redirect(`https://vivekfy.vercel.app/tts?query=${encodeURIComponent(botReply)}`);
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send('Sorry, I encountered an error. Please try again.');
+    }
+});
+
+
+
+
+
 // Default route
 app.get('/', (req: Request, res: Response) => {
   res.json({ query: 'None' });

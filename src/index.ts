@@ -529,19 +529,18 @@ app.get('/img', async (req: Request, res: Response) => {
 
 
 // Endpoint to handle AI questions via GET request
-app.get('/ai', async (req, res) => {
-    const userQuestion = req.query.questions;
+app.get('/gemini', async (req, res) => {
+    const question = req.query.questions;
+    if (!question) {
+        return res.status(400).send('questions parameter is required');
+    }
+
     const API_KEY = 'AIzaSyAMcFfiJw8hR-aAtjbAXUODVCoeq_hqCbE'; // Replace with your actual API key
     const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
 
-    if (!userQuestion) {
-        return res.status(400).send('Missing "questions" query parameter.');
-    }
-
     try {
-        // Send the question to the AI model
         const response = await axios.post(`${API_URL}?key=${API_KEY}`, {
-            contents: [{ role: 'user', parts: [{ text: userQuestion }] }],
+            contents: [{ role: 'user', parts: [{ text: question }] }],
             generationConfig: {
                 temperature: 1,
                 topP: 0.95,
@@ -550,16 +549,11 @@ app.get('/ai', async (req, res) => {
             },
         });
 
-        const botReply = response.data.candidates[0].content.parts[0].text;
-
-        // Redirect to TTS API
-        res.redirect(`https://vivekfy.vercel.app/tts?query=${encodeURIComponent(botReply)}`);
+        res.json(response.data);
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).send('Sorry, I encountered an error. Please try again.');
+        res.status(error.response ? error.response.status : 500).send(error.message);
     }
 });
-
 
 
 

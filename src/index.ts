@@ -543,6 +543,7 @@ app.get('/img', async (req: Request, res: Response) => {
 
 
 
+
 const CARTESIA_API_KEY = '145eed69-d094-4f2e-b8cb-cd17b8daff32';
 const VOICE_ID = 'cd17ff2d-5ea4-4695-be8f-42193949b946';
 
@@ -564,9 +565,9 @@ app.get('/tts/v2', async (req, res) => {
           id: VOICE_ID,
         },
         output_format: {
-          container: 'wav', // Changed to 'wav' for better compatibility
-          encoding: 'pcm_f32le',
-          sample_rate: 24000,
+          container: 'wav', 
+          encoding: 'pcm_s16le', // 16-bit PCM encoding for lower quality
+          sample_rate: 16000, // Lower sample rate for reduced quality and file size
         },
       },
       {
@@ -575,22 +576,21 @@ app.get('/tts/v2', async (req, res) => {
           'Content-Type': 'application/json',
           'X-API-Key': CARTESIA_API_KEY,
         },
-        responseType: 'stream', // Ensuring the response is treated as a stream
+        responseType: 'stream',
       }
     );
 
-    // Set headers to ensure proper handling of the audio data
+    // Set headers for file download
     res.setHeader('Content-Type', 'audio/wav');
-    res.setHeader('Content-Disposition', 'inline; filename="output.wav"');
+    res.setHeader('Content-Disposition', 'attachment; filename="vivek_masona_ai.wav"');
 
-    // Pipe the audio stream directly to the client
+    // Pipe the audio stream directly to the client for instant download
     response.data.pipe(res);
   } catch (error) {
     console.error('Error generating TTS:', error.response?.data || error.message);
     res.status(500).json({ error: 'Voice synthesis failed' });
   }
 });
-
 
 
 

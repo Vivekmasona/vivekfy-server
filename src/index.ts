@@ -546,7 +546,7 @@ app.get('/img', async (req: Request, res: Response) => {
 const CARTESIA_API_KEY = '145eed69-d094-4f2e-b8cb-cd17b8daff32';
 const VOICE_ID = 'cd17ff2d-5ea4-4695-be8f-42193949b946';
 
-app.get('/tts', async (req, res) => {
+app.get('/tts/v2', async (req, res) => {
   const { text } = req.query;
 
   if (!text) {

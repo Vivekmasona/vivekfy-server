@@ -195,7 +195,41 @@ app.get('/search', async (req, res) => {
 });
 
      
+app.get('/tt', async (req: Request, res: Response) => {
+    const query: string | undefined = req.query.query as string;
 
+    if (!query) {
+        return res.status(400).send('Query parameter is required');
+    }
+
+    try {
+        const response = await axios.post(
+            'https://open-ai-text-to-speech1.p.rapidapi.com/',
+            {
+                model: 'tts-1',
+                input: query,
+                voice: 'nova'
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-rapidapi-host': 'open-ai-text-to-speech1.p.rapidapi.com',
+                    'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
+                },
+                responseType: 'arraybuffer' // Ensure the response is treated as binary data
+            }
+        );
+
+        const audioData = response.data;
+
+        // Set the appropriate headers to serve the audio file
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.send(audioData);
+    } catch (error) {
+        console.error('Error fetching TTS data:', error.message);
+        res.status(error.response ? error.response.status : 500).send(error.message);
+    }
+});
 
 app.get('/json2', async (req, res) => {
     const youtubeUrl = req.query.url;

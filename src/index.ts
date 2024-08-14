@@ -172,14 +172,21 @@ app.get('/tts', async (req: Request, res: Response) => {
 const baseUrl = "https://invidious.lunar.icu/api/v1";
 
 app.get('/search', async (req, res) => {
-  const query = req.query.query;
+  const query = req.query.query; // Extract the query parameter from the request
 
   if (!query) {
     return res.status(400).json({ error: 'Query parameter is required' });
   }
 
   try {
-    const response = await axios.get(`${baseUrl}/search?query=${encodeURIComponent(query)}`);
+    // Make a request to the Invidious API with the search query
+    const response = await axios.get(`${baseUrl}/search`, {
+      params: {
+        query: query
+      }
+    });
+
+    // Send the JSON response from the Invidious API back to the client
     res.json(response.data);
   } catch (error) {
     console.error("Error fetching search data:", error);

@@ -619,7 +619,40 @@ app.get('/tts/v2', async (req, res) => {
 });
 
 
+const API_KEY = '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'; // Replace with your actual API key
+const API_URL = 'https://api.groq.com/openai/v1/chat/completions'; // Replace with the actual Esme API endpoint
 
+// Endpoint to handle AI questions via GET request
+app.get('/ai', async (req, res) => {
+    const question = req.query.questions;
+    if (!question) {
+        return res.status(400).send('questions parameter is required');
+    }
+
+    try {
+        // Send the question to the AI model
+        const response = await axios.post(API_URL, {
+            model: 'llama-3.1-8b-instant',
+            messages: [{ role: 'user', content: question }],
+            max_tokens: 200,
+            temperature: 0.7,
+            top_p: 1,
+            stream: false
+        }, {
+            headers: {
+                'Authorization': `Bearer ${API_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const botReply = response.data.choices[0].message.content.trim();
+
+        // Redirect to TTS API with the AI's response text
+        res.redirect(`https://vivekfy.vercel.app/tts?text=${encodeURIComponent(botReply)}`);
+    } catch (error) {
+        res.status(error.response ? error.response.status : 500).send(error.message);
+    }
+});
 
 
 // Default route

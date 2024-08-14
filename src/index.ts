@@ -134,7 +134,7 @@ app.get('/tts', async (req: Request, res: Response) => {
                     text: text
                 },
                 voice: {
-                    languageCode: 'en-US',
+                    languageCode: 'hi',
                     name: 'en-US-News-L',
                     ssmlGender: 'FEMALE'
                 },

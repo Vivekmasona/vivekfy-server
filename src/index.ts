@@ -1,12 +1,16 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import ytdl from 'ytdl-core';
 import axios from 'axios';
-import { Request, Response } from 'express';
+import TelegramBot from 'node-telegram-bot-api';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
+
+// Replace with your actual bot token
+const token = '6679345669:AAELrij30jh93yVhnI-yzqf2krf4QVHCdSs';
+const bot = new TelegramBot(token, { polling: true });
 
 // Function to sanitize input URL
 function sanitizeURL(url: string): string {
@@ -19,7 +23,6 @@ function getYouTubeVideoId(url: string): string | null {
   const params = new URLSearchParams(urlObj.search);
   return params.get('v') || urlObj.pathname.split('/').pop() || null;
 }
-
 
 // Function to find URL by itag in the nested JSON
 function findUrlByItag(data: any, itag: number): string | null {
@@ -86,574 +89,145 @@ app.get('/audio', async (req: Request, res: Response) => {
   }
 });
 
+// Route to handle YouTube JSON API
+app.get('/json', async (req: Request, res: Response) => {
+  const youtubeUrl = req.query.url;
+  if (!youtubeUrl) {
+    return res.status(400).send('URL parameter is required');
+  }
 
+  // Extract video ID from YouTube URL
+  const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  const videoId = videoIdMatch ? videoIdMatch[1] : null;
 
-app.get('/json', async (req, res) => {
-    const youtubeUrl = req.query.url;
-    if (!youtubeUrl) {
-        return res.status(400).send('URL parameter is required');
-    }
-
-    // Extract video ID from YouTube URL
-    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    const videoId = videoIdMatch ? videoIdMatch[1] : null;
-
-    if (!videoId) {
-        return res.status(400).send('Invalid YouTube URL');
-    }
-
-    try {
-        const response = await axios.get('https://yt-api.p.rapidapi.com/dl', {
-            params: { id: videoId },
-            headers: {
-                'x-rapidapi-host': 'yt-api.p.rapidapi.com',
-                'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
-            }
-        });
-
-        res.json(response.data);
-    } catch (error) {
-        res.status(error.response ? error.response.status : 500).send(error.message);
-    }
-});
-
-
-
-app.get('/tts', async (req: Request, res: Response) => {
-    const text: string | undefined = req.query.text as string;
-
-    if (!text) {
-        return res.status(400).send('Text query parameter is required');
-    }
-
-    try {
-        const response = await axios.post(
-            'https://joj-text-to-speech.p.rapidapi.com/',
-            {
-                input: {
-                    text: text
-                },
-                voice: {
-                    languageCode: 'hi',
-                    name: 'en-US-News-L',
-                    ssmlGender: 'FEMALE'
-                },
-                audioConfig: {
-                    audioEncoding: 'MP3'
-                }
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-rapidapi-host': 'joj-text-to-speech.p.rapidapi.com',
-                    'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
-                }
-            }
-        );
-
-        const base64Audio = response.data.audioContent;
-
-        // Decode the base64-encoded audio content
-        const audioBuffer = Buffer.from(base64Audio, 'base64');
-
-        // Set the appropriate headers to serve the audio file
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Content-Length', audioBuffer.length.toString());
-
-        // Send the audio buffer as the response
-        res.send(audioBuffer);
-    } catch (error) {
-        console.error('Error fetching TTS data:', error.message);
-        res.status(error.response ? error.response.status : 500).send(error.message);
-    }
-});
-
-//invidious api search developer vivek
-const baseUrl = "https://invidious.lunar.icu/api/v1";
-
-app.get('/search', async (req, res) => {
-  const query = req.query.query; // Extract the query parameter from the request
-
-  if (!query) {
-    return res.status(400).json({ error: 'Query parameter is required' });
+  if (!videoId) {
+    return res.status(400).send('Invalid YouTube URL');
   }
 
   try {
-    // Make a request to the Invidious API with the search query
-    const response = await axios.get(`${baseUrl}/search`, {
-      params: {
-        query: query
+    const response = await axios.get('https://yt-api.p.rapidapi.com/dl', {
+      params: { id: videoId },
+      headers: {
+        'x-rapidapi-host': 'yt-api.p.rapidapi.com',
+        'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
       }
     });
 
-    // Send the JSON response from the Invidious API back to the client
     res.json(response.data);
   } catch (error) {
-    console.error("Error fetching search data:", error);
-    res.status(500).json({ error: 'Error fetching search data' });
+    res.status(error.response ? error.response.status : 500).send(error.message);
   }
 });
 
-     
+// Telegram bot code
+// Welcome message for new users
+bot.onText(/\/start/, (msg) => {
+  const chatId = msg.chat.id;
+  const firstName = msg.from.first_name;
+  const welcomeMessage = `
+Hello👋 ${firstName} 🥰babu
 
+WELCOME🙏TO VIVEKFY🎧AI BOT!🤖
 
-app.get('/json2', async (req, res) => {
-    const youtubeUrl = req.query.url;
-
-    if (!youtubeUrl) {
-        return res.status(400).send('URL parameter is required');
-    }
-
-    // Extract video ID from YouTube URL
-    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    const videoId = videoIdMatch ? videoIdMatch[1] : null;
-
-    if (!videoId) {
-        return res.status(400).send('Invalid YouTube URL');
-    }
-
-    try {
-        const response = await axios.get('https://ytstream-download-youtube-videos.p.rapidapi.com/dl', {
-            params: { id: videoId },
-            headers: {
-                'x-rapidapi-host': 'ytstream-download-youtube-videos.p.rapidapi.com',
-                'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
-            }
-        });
-
-        res.json(response.data);
-    } catch (error) {
-        console.error('Error fetching YouTube data:', error.message);
-        res.status(error.response ? error.response.status : 500).send(error.message);
-    }
+Please enter a🎧song name 
+     `;
+  bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
 });
 
-
-app.get('/audio-dl', async (req, res) => {
-    const youtubeUrl = req.query.url;
-
-    if (!youtubeUrl) {
-        return res.status(400).send('URL parameter is required');
-    }
-
-    // Extract video ID from YouTube URL
-    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    const videoId = videoIdMatch ? videoIdMatch[1] : null;
-
-    if (!videoId) {
-        return res.status(400).send('Invalid YouTube URL');
-    }
-
-    try {
-        const response = await axios.get('https://youtube-mp36.p.rapidapi.com/dl', {
-            params: { id: videoId },
-            headers: {
-                'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
-                'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
-            }
-        });
-
-        // Assuming the response contains a field 'link' with the redirect URL
-        const downloadUrl = response.data.link;
-
-        if (downloadUrl) {
-            res.redirect(downloadUrl);
-        } else {
-            res.status(500).send('Download URL not found in response');
-        }
-    } catch (error) {
-        console.error('Error fetching YouTube data:', error.message);
-        res.status(error.response ? error.response.status : 500).send(error.message);
-    }
-});
-
-
-app.get('/cdn', async (req, res) => {
-    const mediaUrl = req.query.url;
-
-    if (!mediaUrl) {
-        return res.status(400).send('URL parameter is required');
-    }
-
-    try {
-        const response = await axios.post('https://all-media-downloader.p.rapidapi.com/download', 
-            `-----011000010111000001101001\r\nContent-Disposition: form-data; name="url"\r\n\r\n${mediaUrl}\r\n-----011000010111000001101001--\r\n\r\n`, 
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data; boundary=---011000010111000001101001',
-                    'x-rapidapi-host': 'all-media-downloader.p.rapidapi.com',
-                    'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
-                }
-            }
-        );
-
-        res.json(response.data);
-    } catch (error) {
-        console.error('Error fetching media data:', error.message);
-        res.status(error.response ? error.response.status : 500).send(error.message);
-    }
-});
-
-
-app.get('/download-v2', async (req, res) => {
-    const mediaUrl = req.query.url;
-
-    if (!mediaUrl) {
-        return res.status(400).json({ error: 'URL parameter is missing.' });
-    }
-
-    const apiUrl = "https://all-media-downloader.p.rapidapi.com/download";
-    
-    const formData = `-----011000010111000001101001\r\nContent-Disposition: form-data; name="url"\r\n\r\n${mediaUrl}\r\n-----011000010111000001101001--\r\n\r\n`;
-
-    try {
-        const response = await axios.post(apiUrl, formData, {
-            headers: {
-                "Content-Type": "multipart/form-data; boundary=---011000010111000001101001",
-                "x-rapidapi-host": "all-media-downloader.p.rapidapi.com",
-                "x-rapidapi-key": "650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a"
-            }
-        });
-
-        const data = response.data;
-
-        const extractUrls = (obj) => {
-            let urls = [];
-            if (Array.isArray(obj)) {
-                obj.forEach(item => {
-                    urls = urls.concat(extractUrls(item));
-                });
-            } else if (typeof obj === 'object' && obj !== null) {
-                Object.values(obj).forEach(value => {
-                    urls = urls.concat(extractUrls(value));
-                });
-            } else if (typeof obj === 'string' && obj.startsWith('http')) {
-                urls.push(obj);
-            }
-            return urls;
-        };
-
-        const urls = extractUrls(data);
-        const totalUrls = urls.length;
-        const index = req.query.index ? parseInt(req.query.index, 10) - 1 : null;
-
-        if (index !== null) {
-            if (index >= 0 && index < totalUrls) {
-                return res.redirect(urls[index]);
-            } else {
-                return res.status(400).json({ error: 'Index out of bounds.', total_urls: totalUrls });
-            }
-        } else {
-            if (urls.length > 0) {
-                return res.json(urls);
-            } else {
-                return res.status(400).json({ error: 'No URLs found in the response.' });
-            }
-        }
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
-    }
-});
-
-
-
-// Endpoint to handle different platforms
-app.get('/api', (req: Request, res: Response) => {
-    const link: string = req.query.url ? sanitizeURL(req.query.url as string) : '';
-
-    if (link) {
-        let serverLink: string;
-
-        if (link.includes('youtu.be') || link.includes('youtube.com')) {
-            serverLink = `https://vivekfy.vercel.app/download?index=22&url=${link}`;
-        } else if (link.includes('facebook.com')) {
-            serverLink = `https://vivekfy.vercel.app/download?index=8&url=${link}`;
-        } else if (link.includes('instagram.com')) {
-            serverLink = `https://vivekfy.vercel.app/download?index=4&url=${link}`;
-        } else if (link.includes('twitter.com') || link.includes('x.com')) {
-            serverLink = `https://vivekfy.vercel.app/download-v2?index=2&url=${link}`;
-        } else if (link.includes('pinterest.com') || link.includes('pin.it')) {
-            serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
-        } else if (link.includes('vimeo.com')) {
-            serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
-        } else if (link.includes('dailymotion.com') || link.includes('dai.ly')) {
-            serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
-        } else {
-            serverLink = 'Unsupported service';
-        }
-
-        if (serverLink !== 'Unsupported service') {
-            res.redirect(serverLink);
-        } else {
-            res.send(serverLink);
-        }
-    } else {
-        res.send('Invalid URL');
-    }
-});
-
-
-app.get('/download', async (req, res) => {
-    const mediaUrl = req.query.url;
-    if (!mediaUrl) {
-        return res.status(400).json({ error: 'URL parameter is missing.' });
-    }
-
-    const apiUrl = `https://social-media-video-downloader.p.rapidapi.com/smvd/get/all?url=${encodeURIComponent(mediaUrl)}`;
-    try {
-        const response = await axios.get(apiUrl, {
-            headers: {
-                "x-rapidapi-host": "social-media-video-downloader.p.rapidapi.com",
-                "x-rapidapi-key": "650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a"
-            }
-        });
-
-        const data = response.data;
-
-        const extractUrls = (obj) => {
-            let urls = [];
-            if (Array.isArray(obj)) {
-                obj.forEach(item => {
-                    urls = urls.concat(extractUrls(item));
-                });
-            } else if (typeof obj === 'object' && obj !== null) {
-                Object.values(obj).forEach(value => {
-                    urls = urls.concat(extractUrls(value));
-                });
-            } else if (typeof obj === 'string' && obj.startsWith('http')) {
-                urls.push(obj);
-            }
-            return urls;
-        };
-
-        const urls = extractUrls(data);
-        const totalUrls = urls.length;
-        const index = req.query.index ? parseInt(req.query.index, 10) - 1 : null;
-
-        if (index !== null) {
-            if (index >= 0 && index < totalUrls) {
-                return res.redirect(urls[index]);
-            } else {
-                return res.status(400).json({ error: 'Index out of bounds.', total_urls: totalUrls });
-            }
-        } else {
-            if (urls.length > 0) {
-                return res.json(urls);
-            } else {
-                return res.status(400).json({ error: 'No URLs found in the response.' });
-            }
-        }
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
-    }
-});
-
-
-
-// Route for streaming YouTube audio in OPUS format via a third-party API
-app.get('/stream', async (req: Request, res: Response) => {
-  const videoUrl = req.query.url as string;
-
-  if (!videoUrl) {
-    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
-  }
-
-  const videoId = getYouTubeVideoId(videoUrl);
-  if (!videoId) {
-    return res.status(400).send('Invalid YouTube video URL');
-  }
-
-  const provider = 'https://api.cobalt.tools/api/json';
-  const streamUrl = `https://youtu.be/${videoId}`;
+// Handle song search queries
+async function searchSongs(query: string) {
   try {
-    const response = await axios.post(provider, {
-      url: streamUrl,
-      isAudioOnly: true,  // Set to true to indicate audio-only
-      aFormat: 'opus',   // Set format to OPUS
-      filenamePattern: 'basic'
-    }, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
-    });
-
-    const result = response.data;
-    res.redirect(result.url); // Redirect to the stream URL
+    const response = await axios.get(`https://svn-vivekfy.vercel.app/search/songs?query=${encodeURIComponent(query)}`);
+    return response.data?.data?.results || [];
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to stream audio: ' + error.message });
+    console.error('Error fetching song data:', error);
+    return [];
   }
-});
+}
 
-
-// Route for direct media download via a third-party API
-app.get('/savevideo', async (req: Request, res: Response) => {
-  const videoUrl = req.query.url as string;
-
-  if (!videoUrl) {
-    return res.status(400).send('Please provide a valid URL as a query parameter');
-  }
-
-  const provider = 'https://api.cobalt.tools/api/json'; // Default Cobalt API endpoint
-
+// Get audio stream
+async function getStream(url: string) {
   try {
-    const response = await axios.post(provider, {
-      url: videoUrl,
-      isAudioOnly: false, // Set to false to download video
-      aFormat: 'mp4',    // Change format to mp4 or desired video format
-      filenamePattern: 'basic'
-    }, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    const response = await axios({
+      url,
+      method: 'GET',
+      responseType: 'stream',
     });
-
-    const result = response.data;
-    res.redirect(result.url);
+    return response.data;
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to download media: ' + error.message });
+    console.error('Error fetching audio stream:', error);
+    return null;
   }
-});
+}
 
-// Route for direct media download via a third-party API
-app.get('/saveaudio', async (req: Request, res: Response) => {
-  const videoUrl = req.query.url as string;
+// Handle regular messages (not commands)
+bot.on('message', async (msg) => {
+  const chatId = msg.chat.id;
+  const messageId = msg.message_id;
+  const text = msg.text.trim();
 
-  if (!videoUrl) {
-    return res.status(400).send('Please provide a valid URL as a query parameter');
+  // Ignore messages that are commands (start with '/')
+  if (text.startsWith('/')) return;
+
+  // Check if the text is a URL
+  const urlRegex = /https?:\/\/[^\s]+/;
+  if (urlRegex.test(text)) {
+    bot.sendMessage(chatId, 'Processing your URL...');
+
+    // Example: Send the URL as a response
+    bot.sendMessage(chatId, `Here is your URL: ${text}`);
+    return;
   }
 
-  const provider = 'https://api.cobalt.tools/api/json'; // Default Cobalt API endpoint
+  // Delete the user's query message
+  await bot.deleteMessage(chatId, messageId);
 
-  try {
-    const response = await axios.post(provider, {
-      url: videoUrl,
-      isAudioOnly: true, // Adjust this if needed
-      aFormat: 'mp3',   // Adjust this if needed
-      filenamePattern: 'basic'
-    }, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
-    });
+  // Otherwise, treat it as a song search query
+  const songs = await searchSongs(text);
+  if (songs.length > 0) {
+    const foundMessage = await bot.sendMessage(chatId, `Found ${songs.length} songs. Sending the list...`);
 
-    const result = response.data;
-    res.redirect(result.url);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to download media: ' + error.message });
-  }
-});
+    // Limit the number of songs sent to 5 to avoid overwhelming users
+    const limitedSongs = songs.slice(0, 5);
 
+    for (const song of limitedSongs) {
+      const songUrl = song.downloadUrl[1]?.link;
 
-app.get('/img', async (req: Request, res: Response) => {
-    const videoId = req.query.videoId;
+      if (songUrl) {
+        const songMessage = `
+*${song.name}*
+_${song.primaryArtists || 'Unknown Artist'}_
+`;
 
-    if (!videoId || typeof videoId !== 'string') {
-        return res.status(400).send('Invalid video ID');
-    }
+        // Get audio stream
+        const audioStream = await getStream(songUrl);
 
-    const apiUrl = `https://youtubeforever.vercel.app/videoinfo/${videoId}`;
+        if (audioStream) {
+          // Send the poster with caption
+          await bot.sendPhoto(chatId, song.image[2]?.link, {
+            caption: songMessage,
+            parse_mode: 'Markdown'
+          });
 
-    try {
-        const response = await axios.get(apiUrl);
-        const channelData = response.data;
-        const thumbnails = channelData.author.thumbnails;
-        const thumbnail176 = thumbnails.find((thumbnail: any) => thumbnail.width === 176 && thumbnail.height === 176);
-
-        if (thumbnail176) {
-            return res.redirect(thumbnail176.url);
+          // Send the audio stream
+          await bot.sendAudio(chatId, audioStream, {
+            title: song.name,
+            performer: song.primaryArtists || 'Unknown Artist'
+          });
         } else {
-            return res.status(404).send('176x176 thumbnail not found');
+          bot.sendMessage(chatId, `Sorry, unable to stream the audio for the song: ${song.name}`);
         }
-    } catch (error) {
-        console.error(error);
-        return res.status(500).send('Error fetching data');
-    }
-});
-
-
-
-
-const CARTESIA_API_KEY = '65d41a00-6aea-4fc7-b168-6e690c8d88a5';
-const VOICE_ID = 'cd17ff2d-5ea4-4695-be8f-42193949b946';
-
-app.get('/tts/v2', async (req, res) => {
-  const { text } = req.query;
-
-  if (!text) {
-    return res.status(400).json({ error: 'Text query parameter is required' });
-  }
-
-  try {
-    const response = await axios.post(
-      'https://api.cartesia.ai/tts/bytes',
-      {
-        model_id: 'sonic-english',
-        transcript: text,
-        voice: {
-          mode: 'id',
-          id: VOICE_ID,
-        },
-        output_format: {
-          container: 'wav', 
-          encoding: 'pcm_s16le', // 16-bit PCM encoding for lower quality
-          sample_rate: 16000, // Lower sample rate for reduced quality and file size
-        },
-      },
-      {
-        headers: {
-          'Cartesia-Version': '2024-06-30',
-          'Content-Type': 'application/json',
-          'X-API-Key': CARTESIA_API_KEY,
-        },
-        responseType: 'stream',
+      } else {
+        bot.sendMessage(chatId, `Sorry, no downloadable URL found for the song: ${song.name}`);
       }
-    );
+    }
 
-    // Set headers for file download
-    res.setHeader('Content-Type', 'audio/wav');
-    res.setHeader('Content-Disposition', 'attachment; filename="vivek_masona_ai.wav"');
-
-    // Pipe the audio stream directly to the client for instant download
-    response.data.pipe(res);
-  } catch (error) {
-    console.error('Error generating TTS:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Voice synthesis failed' });
+    // Delete the "Found X songs. Sending the list..." message
+    await bot.deleteMessage(chatId, foundMessage.message_id);
+  } else {
+    bot.sendMessage(chatId, 'No songs found for your query.');
   }
 });
-
-
-const API_KEY = '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'; // Replace with your actual API key
-const API_URL = 'https://api.groq.com/openai/v1/chat/completions'; // Replace with the actual Esme API endpoint
-
-// Endpoint to handle AI questions via GET request
-app.get('/ai', async (req, res) => {
-    const question = req.query.questions;
-    if (!question) {
-        return res.status(400).send('questions parameter is required');
-    }
-
-    try {
-        // Send the question to the AI model
-        const response = await axios.post(API_URL, {
-            model: 'llama-3.1-8b-instant',
-            messages: [{ role: 'user', content: question }],
-            max_tokens: 200,
-            temperature: 0.7,
-            top_p: 1,
-            stream: false
-        }, {
-            headers: {
-                'Authorization': `Bearer ${API_KEY}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const botReply = response.data.choices[0].message.content.trim();
-
-        // Redirect to TTS API with the AI's response text
-        res.redirect(`https://vivekfy.vercel.app/tts?text=${encodeURIComponent(botReply)}`);
-    } catch (error) {
-        res.status(error.response ? error.response.status : 500).send(error.message);
-    }
-});
-
 
 // Default route
 app.get('/', (req: Request, res: Response) => {
@@ -669,5 +243,3 @@ app.use((err: any, req: Request, res: Response, next: Function) => {
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
-     
-

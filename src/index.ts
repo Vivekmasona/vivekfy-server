@@ -118,6 +118,7 @@ app.get('/json', async (req, res) => {
 });
 
 
+
 const CARTESIA_API_KEY = 'e1dadf99-c903-4da2-bc1a-1f4c069d8bd3'; // Updated API key
 const VOICE_ID = 'cd17ff2d-5ea4-4695-be8f-42193949b946'; // Your Voice ID
 
@@ -150,22 +151,17 @@ app.get('/tts/v1', async (req, res) => {
           'Content-Type': 'application/json',
           'X-API-Key': CARTESIA_API_KEY,
         },
-        responseType: 'stream',
+        responseType: 'arraybuffer', // Receive data as an arraybuffer
       }
     );
 
-    // Set headers to allow direct play in browser without download
-    res.setHeader('Content-Type', 'audio/wav');
-    res.setHeader('Content-Disposition', 'inline'); // Inline disposition to play directly in browser
-
-    // Pipe the audio stream directly to the client for direct play
-    response.data.pipe(res);
+    // Directly send the WAV data in response
+    res.send(response.data);
   } catch (error) {
     console.error('Error generating TTS:', error.response?.data || error.message);
     res.status(500).json({ error: 'Voice synthesis failed' });
   }
 });
-
 
 
 

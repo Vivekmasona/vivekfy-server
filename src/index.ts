@@ -117,7 +117,52 @@ app.get('/json', async (req, res) => {
     }
 });
 
+const CARTESIA_API_KEY = 'e1dadf99-c903-4da2-bc1a-1f4c069d8bd3'; // Updated API key
+const VOICE_ID = 'cd17ff2d-5ea4-4695-be8f-42193949b946'; // Your Voice ID
 
+app.get('/tts/v1', async (req, res) => {
+  const { text } = req.query;
+
+  if (!text) {
+    return res.status(400).json({ error: 'Text query parameter is required' });
+  }
+
+  try {
+    const response = await axios.post(
+      'https://api.cartesia.ai/tts/bytes',
+      {
+        model_id: 'sonic-english',
+        transcript: text,
+        voice: {
+          mode: 'id',
+          id: VOICE_ID,
+        },
+        output_format: {
+          container: 'mp3', // MP3 format for direct play
+          encoding: 'mp3', // MP3 encoding
+          sample_rate: 16000, // Sample rate
+        },
+      },
+      {
+        headers: {
+          'Cartesia-Version': '2024-06-30',
+          'Content-Type': 'application/json',
+          'X-API-Key': CARTESIA_API_KEY,
+        },
+        responseType: 'stream',
+      }
+    );
+
+    // Set headers to allow direct play in browser
+    res.setHeader('Content-Type', 'audio/mpeg');
+    
+    // Pipe the audio stream directly to the client for direct play
+    response.data.pipe(res);
+  } catch (error) {
+    console.error('Error generating TTS:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Voice synthesis failed' });
+  }
+});
 
 app.get('/tts', async (req: Request, res: Response) => {
     const text: string | undefined = req.query.text as string;

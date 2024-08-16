@@ -117,6 +117,7 @@ app.get('/json', async (req, res) => {
     }
 });
 
+
 const CARTESIA_API_KEY = 'e1dadf99-c903-4da2-bc1a-1f4c069d8bd3'; // Updated API key
 const VOICE_ID = 'cd17ff2d-5ea4-4695-be8f-42193949b946'; // Your Voice ID
 
@@ -138,8 +139,8 @@ app.get('/tts/v1', async (req, res) => {
           id: VOICE_ID,
         },
         output_format: {
-          container: 'mp3', // MP3 format for direct play
-          encoding: 'mp3', // MP3 encoding
+          container: 'wav', // WAV format
+          encoding: 'pcm_s16le', // PCM 16-bit encoding
           sample_rate: 16000, // Sample rate
         },
       },
@@ -153,9 +154,10 @@ app.get('/tts/v1', async (req, res) => {
       }
     );
 
-    // Set headers to allow direct play in browser
-    res.setHeader('Content-Type', 'audio/mpeg');
-    
+    // Set headers to allow direct play in browser without download
+    res.setHeader('Content-Type', 'audio/wav');
+    res.setHeader('Content-Disposition', 'inline'); // Inline disposition to play directly in browser
+
     // Pipe the audio stream directly to the client for direct play
     response.data.pipe(res);
   } catch (error) {
@@ -163,6 +165,9 @@ app.get('/tts/v1', async (req, res) => {
     res.status(500).json({ error: 'Voice synthesis failed' });
   }
 });
+
+
+
 
 app.get('/tts', async (req: Request, res: Response) => {
     const text: string | undefined = req.query.text as string;

@@ -568,7 +568,8 @@ app.get('/img', async (req: Request, res: Response) => {
 });
 
 
-
+const CARTESIA_API_KEY = 'e1dadf99-c903-4da2-bc1a-1f4c069d8bd3'; // Updated API key
+const VOICE_ID = 'cd17ff2d-5ea4-4695-be8f-42193949b946'; // Your Voice ID
 
 app.get('/tts/v2', async (req, res) => {
   const { text } = req.query;
@@ -577,66 +578,44 @@ app.get('/tts/v2', async (req, res) => {
     return res.status(400).json({ error: 'Text query parameter is required' });
   }
 
-  const maxChunkSize = 500; // Suppose API allows 600 characters per request
-  const textChunks = [];
-
-  // Split text into chunks of maxChunkSize
-  for (let i = 0; i < text.length; i += maxChunkSize) {
-    textChunks.push(text.substring(i, i + maxChunkSize));
-  }
-
   try {
-    // Array to store all TTS audio streams
-    const audioStreams = [];
-
-    for (const chunk of textChunks) {
-      const response = await axios.post(
-        'https://api.cartesia.ai/tts/bytes',
-        {
-          model_id: 'sonic-english',
-          transcript: chunk,
-          voice: {
-            mode: 'id',
-            id: VOICE_ID,
-          },
-          output_format: {
-            container: 'wav', 
-            encoding: 'pcm_s16le',
-            sample_rate: 16000,
-          },
+    const response = await axios.post(
+      'https://api.cartesia.ai/tts/bytes',
+      {
+        model_id: 'sonic-english',
+        transcript: text,
+        voice: {
+          mode: 'id',
+          id: VOICE_ID,
         },
-        {
-          headers: {
-            'Cartesia-Version': '2024-06-30',
-            'Content-Type': 'application/json',
-            'X-API-Key': CARTESIA_API_KEY,
-          },
-          responseType: 'stream',
-        }
-      );
+        output_format: {
+          container: 'wav', 
+          encoding: 'pcm_s16le', // 16-bit PCM encoding for lower quality
+          sample_rate: 16000, // Lower sample rate for reduced quality and file size
+        },
+      },
+      {
+        headers: {
+          'Cartesia-Version': '2024-06-30',
+          'Content-Type': 'application/json',
+          'X-API-Key': CARTESIA_API_KEY,
+        },
+        responseType: 'stream',
+      }
+    );
 
-      // Push each stream to the array
-      audioStreams.push(response.data);
-    }
-
-    // Combine all audio streams
+    // Set headers for file download
     res.setHeader('Content-Type', 'audio/wav');
     res.setHeader('Content-Disposition', 'attachment; filename="vivek_masona_ai.wav"');
 
-    for (const stream of audioStreams) {
-      stream.pipe(res, { end: false });
-      stream.on('end', () => {
-        if (stream === audioStreams[audioStreams.length - 1]) {
-          res.end();
-        }
-      });
-    }
-
+    // Pipe the audio stream directly to the client for instant download
+    response.data.pipe(res);
   } catch (error) {
     console.error('Error generating TTS:', error.response?.data || error.message);
     res.status(500).json({ error: 'Voice synthesis failed' });
   }
 });
+
 
 
 const API_KEY = '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'; // Replace with your actual API key

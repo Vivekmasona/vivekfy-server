@@ -621,7 +621,6 @@ app.get('/tts/v2', async (req, res) => {
 });
 
 
-
 const API_KEY = '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'; // Replace with your actual API key
 const API_URL = 'https://api.groq.com/openai/v1/chat/completions'; // Replace with the actual Esme API endpoint
 
@@ -650,12 +649,22 @@ app.get('/ai', async (req, res) => {
 
         const botReply = response.data.choices[0].message.content.trim();
 
-        // Redirect to TTS API with the AI's response text
-        res.redirect(`https://vivekfy.vercel.app/tts/v2?text=${encodeURIComponent(botReply)}`);
+        // Convert AI response text to TTS
+        const audioUrl = googleTTS.getAudioUrl(botReply, {
+            lang: 'hi', // Hindi language code
+            slow: false,
+            host: 'https://translate.google.com',
+        });
+
+        // Redirect to TTS audio URL
+        res.redirect(audioUrl);
     } catch (error) {
         res.status(error.response ? error.response.status : 500).send(error.message);
     }
 });
+
+
+        
 
 
 // Default route

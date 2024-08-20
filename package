@@ -2,9 +2,9 @@
   "name": "video-downloader-api",
   "version": "1.0.0",
   "description": "A Node.js API for downloading and streaming Facebook and Instagram videos.",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.18.2",

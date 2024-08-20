@@ -664,6 +664,45 @@ app.get('/ai', async (req, res) => {
 });
 
 
+// Endpoint for Facebook links
+app.get('/api/fb', async (req, res) => {
+    try {
+        const videoLink = req.query.video;
+        const apiUrl = `https://vivekfy-all-api.vercel.app/api/fb?video=${encodeURIComponent(videoLink)}`;
+
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        // Extract only the 'url' field
+        if (data && data.url) {
+            res.json({ url: data.url });
+        } else {
+            res.status(400).json({ error: 'No URL found in the response' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch data from the API' });
+    }
+});
+
+// Endpoint for Instagram links
+app.get('/api/insta', async (req, res) => {
+    try {
+        const link = req.query.link;
+        const apiUrl = `https://vivekfy-all-api.vercel.app/api/insta?link=${encodeURIComponent(link)}`;
+
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        // Extract only the 'url' field
+        if (data && data.url) {
+            res.json({ url: data.url });
+        } else {
+            res.status(400).json({ error: 'No URL found in the response' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch data from the API' });
+    }
+});
         
 
 

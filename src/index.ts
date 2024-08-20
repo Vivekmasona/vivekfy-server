@@ -651,7 +651,7 @@ app.get('/ai', async (req, res) => {
         const botReply = response.data.choices[0].message.content.trim();
 
         // Redirect to TTS API with the AI's response text
-        res.redirect(`https://vivekfy.vercel.app/tts?text=${encodeURIComponent(botReply)}`);
+        res.redirect(`https://vivekfy.vercel.app/tts/v2?text=${encodeURIComponent(botReply)}`);
     } catch (error) {
         res.status(error.response ? error.response.status : 500).send(error.message);
     }

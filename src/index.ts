@@ -271,6 +271,64 @@ app.get('/cdn', async (req, res) => {
 });
 
 
+// Route to search for videos
+app.get('/search', async (req: Request, res: Response) => {
+  const query = req.query.q as string;
+
+  if (!query) {
+    return res.status(400).json({ error: 'Query parameter q is required' });
+  }
+
+  try {
+    // Fetch search results from Invidious API
+    const searchResponse = await axios.get(`https://invidious.jing.rocks/api/v1/search`, {
+      params: { q: query }
+    });
+    res.json(searchResponse.data);
+  } catch (error) {
+    console.error('Error fetching search results:', error);
+    res.status(500).json({ error: 'Failed to fetch search results' });
+  }
+});
+
+// Route to fetch video details
+app.get('/video/:id', async (req: Request, res: Response) => {
+  const id = req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Video ID is required' });
+  }
+
+  try {
+    // Fetch video details from Invidious API
+    const videoResponse = await axios.get(`https://invidious.jing.rocks/api/v1/videos/${id}`);
+    const videoData = videoResponse.data;
+    
+    if (videoData) {
+      const music = videoData.author.endsWith(' - Topic') ? '&w=720&h=720&fit=cover' : '';
+      if (music) {
+        videoData.author = videoData.author.replace(' - Topic', '');
+      }
+      const videoDetails = {
+        author: videoData.author || 'Unknown Author',
+        title: videoData.title || 'Unknown Title',
+        thumbnail: `https://wsrv.nl?url=${encodeURIComponent(`https://i.ytimg.com/vi_webp/${id}/maxresdefault.webp`)}${music}`,
+        audioUrl: `https://www.youtube.com/watch?v=${id}`
+      };
+      res.json(videoDetails);
+    } else {
+      res.status(404).json({ error: 'Video not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching video details:', error);
+    res.status(500).json({ error: 'Failed to fetch video details' });
+  }
+});
+
+
+
+
+
 app.get('/download-v2', async (req, res) => {
     const mediaUrl = req.query.url;
 

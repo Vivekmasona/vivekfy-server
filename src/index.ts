@@ -403,7 +403,7 @@ app.get('/api', (req: Request, res: Response) => {
         } else if (link.includes('facebook.com')) {
             serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
         } else if (link.includes('instagram.com')) {
-            serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
+            serverLink = `https://vivekfy.fanclub.rocks/api?url=${link}`;
         } else if (link.includes('twitter.com') || link.includes('x.com')) {
             serverLink = `https://vivekfy.vercel.app/download-v2?index=2&url=${link}`;
         } else if (link.includes('pinterest.com') || link.includes('pin.it')) {

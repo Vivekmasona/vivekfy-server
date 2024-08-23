@@ -401,9 +401,9 @@ app.get('/api', (req: Request, res: Response) => {
         if (link.includes('youtu.be') || link.includes('youtube.com')) {
             serverLink = `https://vivekfy.vercel.app/download?index=22&url=${link}`;
         } else if (link.includes('facebook.com')) {
-            serverLink = `https://vivekfy.vercel.app/download?index=8&url=${link}`;
+            serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
         } else if (link.includes('instagram.com')) {
-            serverLink = `https://vivekfy.vercel.app/download?index=4&url=${link}`;
+            serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
         } else if (link.includes('twitter.com') || link.includes('x.com')) {
             serverLink = `https://vivekfy.vercel.app/download-v2?index=2&url=${link}`;
         } else if (link.includes('pinterest.com') || link.includes('pin.it')) {

@@ -693,6 +693,89 @@ app.get('/ai', async (req, res) => {
     }
 });
 
+// Function to sanitize input URL
+function sanitizeURL(url: string): string {
+  return url.replace(/[^a-zA-Z0-9-_.~:/?#[\]@!$&'()*+,;=%]/g, '');
+}
+
+// Function to extract YouTube video ID
+function getYouTubeVideoId(url: string): string | null {
+  const urlObj = new URL(url);
+  const params = new URLSearchParams(urlObj.search);
+  return params.get('v') || urlObj.pathname.split('/').pop() || null;
+}
+
+// Function to find URL by itag in the nested JSON
+function findUrlByItag(data: any, itag: number): string | null {
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      if (item.itag === itag && item.url) {
+        return item.url;
+      }
+      // Recursively search in nested arrays
+      const result = findUrlByItag(item, itag);
+      if (result) {
+        return result;
+      }
+    }
+  } else if (typeof data === 'object') {
+    for (const key in data) {
+      if (data.hasOwnProperty(key)) {
+        const result = findUrlByItag(data[key], itag);
+        if (result) {
+          return result;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// Route to handle redirection or JSON response
+app.get('/mp3', async (req: Request, res: Response) => {
+  const videoUrl = req.query.url as string;
+  const itag = req.query.itag as string;
+
+  if (!videoUrl) {
+    return res.status(400).json({ error: 'Please provide a YouTube video URL as a parameter (e.g., ?url=ytlink).' });
+  }
+
+  try {
+    // Fetch JSON data from Invidious API
+    const sanitizedUrl = sanitizeURL(videoUrl);
+    const invidiousUrl = `https://invidious.fdn.fr/api/v1/videos/${getYouTubeVideoId(sanitizedUrl)}`;
+    const response = await axios.get(invidiousUrl);
+    const info = response.data;
+
+    if (itag) {
+      // Convert itag to a number and validate
+      const itagNumber = parseInt(itag, 10);
+      if (!isNaN(itagNumber)) {
+        // Find the URL by itag
+        const mediaUrl = findUrlByItag(info, itagNumber);
+        if (mediaUrl) {
+          console.log(`Redirecting to URL: ${mediaUrl}`); // Debugging
+          return res.redirect(mediaUrl);
+        } else {
+          return res.status(404).json({ error: 'Media format with the specified itag not found.' });
+        }
+      } else {
+        return res.status(400).json({ error: 'Invalid itag format.' });
+      }
+    } else {
+      // Return the full JSON response if no itag is specified
+      return res.json(info);
+    }
+  } catch (error) {
+    console.error('Error fetching video info:', error); // Debugging
+    return res.status(500).json({ error: 'An error occurred while fetching video info.' });
+  }
+});
+
+
+
+
+
 
 // Endpoint to handle Facebook and Instagram URLs
 app.get('/api/download', async (req, res) => {
@@ -736,7 +819,13 @@ app.get('/api/download', async (req, res) => {
     }
 });
 
-        
+
+
+
+
+
+
+
 
 
 // Default route

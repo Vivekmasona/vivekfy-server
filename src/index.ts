@@ -731,7 +731,7 @@ app.get('/vivekfy', async (req, res) => {
         return res.status(400).send('Error: Invalid YouTube URL.');
     }
 
-    const apiUrl = `https://invidious.fdn.fr/api/v1/videos/${videoId}`;
+    const apiUrl = `https://invidious.privacyredirect.com/api/v1/videos/${videoId}`;
 
     try {
         const response = await axios.get(apiUrl);

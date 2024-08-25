@@ -693,6 +693,11 @@ app.get('/ai', async (req, res) => {
     }
 });
 
+
+
+
+
+
 // Function to sanitize input URL
 function sanitizeURL(url: string): string {
   return url.replace(/[^a-zA-Z0-9-_.~:/?#[\]@!$&'()*+,;=%]/g, '');
@@ -705,15 +710,15 @@ function getYouTubeVideoId(url: string): string | null {
   return params.get('v') || urlObj.pathname.split('/').pop() || null;
 }
 
-// Function to find URL by itag in the nested JSON
-function findUrlByItag(data: any, itag: number): string | null {
+// Function to find the first available URL by itag in the nested JSON
+function findFirstUrlByItag(data: any, itag: number): string | null {
   if (Array.isArray(data)) {
     for (const item of data) {
       if (item.itag === itag && item.url) {
         return item.url;
       }
       // Recursively search in nested arrays
-      const result = findUrlByItag(item, itag);
+      const result = findFirstUrlByItag(item, itag);
       if (result) {
         return result;
       }
@@ -721,7 +726,7 @@ function findUrlByItag(data: any, itag: number): string | null {
   } else if (typeof data === 'object') {
     for (const key in data) {
       if (data.hasOwnProperty(key)) {
-        const result = findUrlByItag(data[key], itag);
+        const result = findFirstUrlByItag(data[key], itag);
         if (result) {
           return result;
         }
@@ -743,7 +748,11 @@ app.get('/mp3', async (req: Request, res: Response) => {
   try {
     // Fetch JSON data from Invidious API
     const sanitizedUrl = sanitizeURL(videoUrl);
-    const invidiousUrl = `https://invidious.fdn.fr/api/v1/videos/${getYouTubeVideoId(sanitizedUrl)}`;
+    const videoId = getYouTubeVideoId(sanitizedUrl);
+    if (!videoId) {
+      return res.status(400).json({ error: 'Invalid YouTube video URL.' });
+    }
+    const invidiousUrl = `https://invidious.fdn.fr/api/v1/videos/${videoId}`;
     const response = await axios.get(invidiousUrl);
     const info = response.data;
 
@@ -751,8 +760,8 @@ app.get('/mp3', async (req: Request, res: Response) => {
       // Convert itag to a number and validate
       const itagNumber = parseInt(itag, 10);
       if (!isNaN(itagNumber)) {
-        // Find the URL by itag
-        const mediaUrl = findUrlByItag(info, itagNumber);
+        // Find the first available URL by itag
+        const mediaUrl = findFirstUrlByItag(info, itagNumber);
         if (mediaUrl) {
           console.log(`Redirecting to URL: ${mediaUrl}`); // Debugging
           return res.redirect(mediaUrl);
@@ -771,6 +780,8 @@ app.get('/mp3', async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'An error occurred while fetching video info.' });
   }
 });
+
+
 
 
 

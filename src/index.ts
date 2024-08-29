@@ -759,6 +759,47 @@ app.get('/vivekfy', async (req, res) => {
     }
 });
 
+app.get('/vivekfy2', async (req, res) => {
+    const videoUrl = req.query.url;
+
+    if (!videoUrl) {
+        return res.status(400).send('Error: No URL provided.');
+    }
+
+    const videoId = extractVideoId(videoUrl);
+
+    if (!videoId) {
+        return res.status(400).send('Error: Invalid YouTube URL.');
+    }
+
+    const apiUrl = `https://inv.tux.pizza/api/v1/videos/${videoId}`;
+
+    try {
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        // Extract adaptive format URL
+        const adaptiveFormats = data.adaptiveFormats || [];
+        let audioUrl = '';
+
+        for (const format of adaptiveFormats) {
+            if (format.url) {
+                audioUrl = format.url;
+                break;
+            }
+        }
+
+        if (audioUrl) {
+            return res.redirect(audioUrl);
+        } else {
+            return res.status(404).send('No adaptive format URL found');
+        }
+    } catch (error) {
+        console.error('Error fetching video details:', error);
+        return res.status(500).send('Error fetching video details.');
+    }
+});
+
 
 // Endpoint to handle Facebook and Instagram URLs
 app.get('/api/download', async (req, res) => {

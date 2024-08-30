@@ -518,6 +518,57 @@ app.get('/stream', async (req: Request, res: Response) => {
 });
 
 
+app.get('/stream2', async (req: Request, res: Response) => {
+  const videoUrl = req.query.url as string;
+
+  if (!videoUrl) {
+    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
+  }
+
+  const videoId = getYouTubeVideoId(videoUrl);
+  if (!videoId) {
+    return res.status(400).send('Invalid YouTube video URL');
+  }
+
+  const provider = 'https://api.cobalt.tools/api/json';
+  const streamUrl = `https://youtu.be/${videoId}`;
+
+  try {
+    // Fetching stream URL from Cobalt.tools API
+    const response = await axios.post(provider, {
+      url: streamUrl,
+      isAudioOnly: true,  // Set to true to indicate audio-only
+      aFormat: 'opus',   // Set format to OPUS
+      filenamePattern: 'basic'
+    }, {
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    });
+
+    const result = response.data;
+    const audioStreamUrl = result.url;
+
+    // Extract thumbnail URL and channel name (if provided in response)
+    const thumbnailUrl = result.thumbnail; // Assuming response has thumbnail URL
+    const channelName = result.channel; // Assuming response has channel name
+
+    // Embed thumbnail and metadata into the audio file (This is a placeholder, actual implementation will vary)
+    const ffmpegCommand = `ffmpeg -i "${audioStreamUrl}" -i "${thumbnailUrl}" -map 0:a -map 1 -c copy -metadata artist="${channelName}" -id3v2_version 3 output_with_metadata.opus`;
+
+    // Here you should run the ffmpeg command using a child process (this is just a sample command)
+    // Once the ffmpeg processing is done, serve the file
+    res.redirect(audioStreamUrl); // Redirect to the processed stream URL with embedded metadata
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to stream audio: ' + error.message });
+  }
+});
+
+
+
+
+
+
 // Route for direct media download via a third-party API
 app.get('/savevideo', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;

@@ -997,7 +997,7 @@ app.get('/yt', async (req, res) => {
 
 
 // Endpoint to handle audio download request
-app.get('/download', async (req, res) => {
+app.get('/meta', async (req, res) => {
     const youtubeUrl = req.query.url;
 
     if (!youtubeUrl) {

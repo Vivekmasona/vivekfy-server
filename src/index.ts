@@ -980,11 +980,14 @@ app.get('/yt', async (req, res) => {
     const response = await axios.get(`https://invidious.fdn.fr/api/v1/videos/${videoId}`);
     
     const { title, videoThumbnails } = response.data;
-    const thumbnailUrl = videoThumbnails[videoThumbnails.length - 1].url;
+    
+    // Find the "mqdefault" thumbnail
+    const thumbnail = videoThumbnails.find(thumbnail => thumbnail.url.includes('mqdefault'))?.url;
 
     res.json({
+      artist: 'Vivek Masona', // Fixed artist name
       title: title,
-      thumbnail: thumbnailUrl
+      thumbnail: thumbnail || 'No thumbnail available'
     });
   } catch (error) {
     console.error('Error fetching video details:', error);

@@ -977,7 +977,7 @@ app.get('/yt', async (req, res) => {
   }
 
   try {
-    const response = await axios.get(`https://invidious.fdn.fr/api/v1/videos/${videoId}`);
+    const response = await axios.get(`https://invidious.privacyredirect.com/api/v1/videos/${videoId}`);
     
     const { title, videoThumbnails } = response.data;
     
@@ -985,7 +985,7 @@ app.get('/yt', async (req, res) => {
     const thumbnail = videoThumbnails.find(thumbnail => thumbnail.url.includes('mqdefault'))?.url;
 
     res.json({
-      artist: 'Vivek Masona', // Fixed artist name
+      artist: 'VivekMasona', // Fixed artist name
       title: title,
       thumbnail: thumbnail || 'No thumbnail available'
     });

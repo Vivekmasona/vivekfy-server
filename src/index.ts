@@ -996,15 +996,14 @@ app.get('/yt', async (req, res) => {
 });
 
 
-// Endpoint to handle audio download request
-app.get('/meta', async (req, res) => {
+
+app.get('/dl/poster', async (req, res) => {
     const youtubeUrl = req.query.url;
 
     if (!youtubeUrl) {
         return res.status(400).send('URL parameter is required');
     }
 
-    // Extract video ID from YouTube URL
     const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     const videoId = videoIdMatch ? videoIdMatch[1] : null;
 
@@ -1013,33 +1012,20 @@ app.get('/meta', async (req, res) => {
     }
 
     try {
-        // Fetch metadata
-        const metadataResponse = await axios.get('https://vivekfy.vercel.app/yt?videoId=' + videoId);
-        const { title } = metadataResponse.data;
+        const coverUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        const coverResponse = await axios.get(coverUrl, { responseType: 'arraybuffer' });
 
-        // Fetch streaming URL
-        const streamResponse = await axios.get('https://vivekfy.vercel.app/stream', {
-            params: { url: youtubeUrl }
-        });
+        const coverFileName = `${videoId}_cover.jpg`;
 
-        const streamUrl = streamResponse.data.url;
-
-        // Download and serve audio
-        const audioResponse = await axios.get(streamUrl, { responseType: 'arraybuffer' });
-
-        const outputFileName = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`;
-
-        res.setHeader('Content-Disposition', `attachment; filename="${outputFileName}"`);
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.send(audioResponse.data);
+        res.setHeader('Content-Disposition', `attachment; filename="${coverFileName}"`);
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.send(coverResponse.data);
         
     } catch (error) {
-        console.error('Error processing request:', error.message);
+        console.error('Error fetching poster image:', error.message);
         res.status(error.response ? error.response.status : 500).send('An error occurred.');
     }
 });
-
-
 
 
 

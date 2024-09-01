@@ -968,7 +968,29 @@ app.get('/api/ig', async (req, res) => {
 
 
 
+// Endpoint to get video details
+app.get('/yt', async (req, res) => {
+  const videoId = req.query.videoId;
 
+  if (!videoId) {
+    return res.status(400).json({ error: 'videoId query parameter is required' });
+  }
+
+  try {
+    const response = await axios.get(`https://invidious.fdn.fr/api/v1/videos/${videoId}`);
+    
+    const { title, videoThumbnails } = response.data;
+    const thumbnailUrl = videoThumbnails[videoThumbnails.length - 1].url;
+
+    res.json({
+      title: title,
+      thumbnail: thumbnailUrl
+    });
+  } catch (error) {
+    console.error('Error fetching video details:', error);
+    res.status(500).json({ error: 'Failed to fetch video details' });
+  }
+});
 
 
 

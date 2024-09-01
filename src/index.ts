@@ -889,30 +889,32 @@ app.get('/api/fb', async (req, res) => {
 // Endpoint to handle Instagram URLs
 app.get('/api/ig', async (req, res) => {
     try {
-        const { video } = req.query;
+        const { url } = req.query;
 
-        // Check if the video query parameter is provided
-        if (!video) {
-            return res.status(400).json({ error: 'Please provide a video query parameter' });
+        // Check if the url query parameter is provided
+        if (!url) {
+            return res.status(400).json({ error: 'Please provide a url query parameter' });
         }
 
-        // Instagram API URL
-        const apiUrl = `https://vivekfy-all-api.vercel.app/api/insta?link=${encodeURIComponent(video)}`;
+        // Instagram API URL with the provided URL parameter
+        const apiUrl = `https://vivekfy-all-api.vercel.app/api/insta?link=${encodeURIComponent(url)}`;
 
         // Fetch the JSON response from the Instagram API
         const response = await axios.get(apiUrl);
         const data = response.data;
 
-        if (data) {
-            if (data.hd) {
-                res.redirect(data.hd);  // Redirect to the HD URL if available
-            } else if (data.sd) {
-                res.redirect(data.sd);  // Redirect to the SD URL if HD is not available
+        if (data && data.data && data.data.length > 0) {
+            // Extract the video URL from the JSON response
+            const videoUrl = data.data[0].url; // Assuming the first item in the array is the required video URL
+
+            if (videoUrl) {
+                // Redirect to the video URL
+                return res.redirect(videoUrl);
             } else {
-                res.status(400).json({ error: 'No video URL found in the response' });
+                return res.status(400).json({ error: 'No video URL found in the response' });
             }
         } else {
-            res.status(400).json({ error: 'Invalid response from Instagram API' });
+            return res.status(400).json({ error: 'Invalid response from Instagram API' });
         }
     } catch (error) {
         console.error('Error fetching Instagram video data:', error);

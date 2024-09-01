@@ -898,10 +898,10 @@ app.get('/vivekfy3', async (req, res) => {
 // Endpoint to handle Facebook URLs
 app.get('/api/fb', async (req, res) => {
     try {
-        const { url } = req.query;
+        const { video } = req.query;
 
         // Check if the video query parameter is provided
-        if (!url) {
+        if (!video) {
             return res.status(400).json({ error: 'Please provide a video query parameter' });
         }
 

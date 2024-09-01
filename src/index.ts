@@ -1049,7 +1049,10 @@ function extractVideoId(url) {
     return match ? match[1] : null;
 }
 
-
+// Start the server
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
 
 // Default route
 app.get('/', (req: Request, res: Response) => {

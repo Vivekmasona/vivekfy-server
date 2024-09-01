@@ -996,59 +996,49 @@ app.get('/yt', async (req, res) => {
 });
 
 
-
-// Function to download and serve audio
-async function downloadAndServeAudio(downloadUrl, title, res) {
-    try {
-        // Download the audio file directly from the streaming URL
-        const audioResponse = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
-        const outputFileName = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`;
-
-        // Stream the audio file directly to the client
-        res.setHeader('Content-Disposition', `attachment; filename="${outputFileName}"`);
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.send(audioResponse.data);
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).send('An error occurred.');
-    }
-}
-
 // Endpoint to handle audio download request
 app.get('/download', async (req, res) => {
     const youtubeUrl = req.query.url;
 
     if (!youtubeUrl) {
-        return res.status(400).send('Error: YouTube URL is required as a query parameter!');
+        return res.status(400).send('URL parameter is required');
     }
 
     // Extract video ID from YouTube URL
-    const videoId = extractVideoId(youtubeUrl);
+    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+    if (!videoId) {
+        return res.status(400).send('Invalid YouTube URL');
+    }
 
     try {
-        // Fetch metadata and audio streaming URL
-        const metadataApiUrl = `https://vivekfy.vercel.app/yt?videoId=${videoId}`;
-        const streamApiUrl = `https://vivekfy.vercel.app/stream?url=${encodeURIComponent(youtubeUrl)}`;
-
         // Fetch metadata
-        const metadataResponse = await axios.get(metadataApiUrl);
+        const metadataResponse = await axios.get('https://vivekfy.vercel.app/yt?videoId=' + videoId);
         const { title } = metadataResponse.data;
 
+        // Fetch streaming URL
+        const streamResponse = await axios.get('https://vivekfy.vercel.app/stream', {
+            params: { url: youtubeUrl }
+        });
+
+        const streamUrl = streamResponse.data.url;
+
         // Download and serve audio
-        await downloadAndServeAudio(streamApiUrl, title, res);
+        const audioResponse = await axios.get(streamUrl, { responseType: 'arraybuffer' });
+
+        const outputFileName = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`;
+
+        res.setHeader('Content-Disposition', `attachment; filename="${outputFileName}"`);
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.send(audioResponse.data);
+        
     } catch (error) {
-        console.error('Error fetching metadata or downloading audio: ', error);
-        res.status(500).send('Error fetching metadata or downloading audio.');
+        console.error('Error processing request:', error.message);
+        res.status(error.response ? error.response.status : 500).send('An error occurred.');
     }
 });
 
-// Utility function to extract video ID from YouTube URL
-function extractVideoId(url) {
-    const regex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i;
-    const match = url.match(regex);
-    return match ? match[1] : null;
-}
-});
 
 
 

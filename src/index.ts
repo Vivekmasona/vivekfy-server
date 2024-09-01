@@ -901,7 +901,7 @@ app.get('/api/fb', async (req, res) => {
         const { url } = req.query;
 
         // Check if the video query parameter is provided
-        if (!video) {
+        if (!url) {
             return res.status(400).json({ error: 'Please provide a video query parameter' });
         }
 

@@ -852,28 +852,20 @@ app.get('/vivekfy2', async (req, res) => {
 });
 
 
-// Endpoint to handle Facebook and Instagram URLs
-app.get('/api/download', async (req, res) => {
+// Endpoint to handle Facebook URLs
+app.get('/api/fb', async (req, res) => {
     try {
-        const { type, video } = req.query;
+        const { video } = req.query;
 
-        // Check if both query parameters are provided
-        if (!type || !video) {
-            return res.status(400).json({ error: 'Please provide both type and video query parameters' });
+        // Check if the video query parameter is provided
+        if (!video) {
+            return res.status(400).json({ error: 'Please provide a video query parameter' });
         }
 
-        let apiUrl;
+        // Facebook API URL
+        const apiUrl = `https://vivekfy-all-api.vercel.app/api/fb?video=${encodeURIComponent(video)}`;
 
-        // Determine the API URL based on the type
-        if (type === 'facebook') {
-            apiUrl = `https://vivekfy-all-api.vercel.app/api/fb?video=${encodeURIComponent(video)}`;
-        } else if (type === 'instagram') {
-            apiUrl = `https://vivekfy.vercel.app/api/insta?link=${encodeURIComponent(video)}`;
-        } else {
-            return res.status(400).json({ error: 'Invalid type provided. Use "facebook" or "instagram".' });
-        }
-
-        // Fetch the JSON response from the selected API
+        // Fetch the JSON response from the Facebook API
         const response = await axios.get(apiUrl);
         const data = response.data;
 
@@ -886,13 +878,48 @@ app.get('/api/download', async (req, res) => {
                 res.status(400).json({ error: 'No video URL found in the response' });
             }
         } else {
-            res.status(400).json({ error: 'Invalid response from API' });
+            res.status(400).json({ error: 'Invalid response from Facebook API' });
         }
     } catch (error) {
-        console.error('Error fetching video data:', error);
-        res.status(500).json({ error: 'Failed to fetch data from the API' });
+        console.error('Error fetching Facebook video data:', error);
+        res.status(500).json({ error: 'Failed to fetch data from the Facebook API' });
     }
 });
+
+// Endpoint to handle Instagram URLs
+app.get('/api/ig', async (req, res) => {
+    try {
+        const { video } = req.query;
+
+        // Check if the video query parameter is provided
+        if (!video) {
+            return res.status(400).json({ error: 'Please provide a video query parameter' });
+        }
+
+        // Instagram API URL
+        const apiUrl = `https://vivekfy.vercel.app/api/insta?link=${encodeURIComponent(video)}`;
+
+        // Fetch the JSON response from the Instagram API
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        if (data) {
+            if (data.hd) {
+                res.redirect(data.hd);  // Redirect to the HD URL if available
+            } else if (data.sd) {
+                res.redirect(data.sd);  // Redirect to the SD URL if HD is not available
+            } else {
+                res.status(400).json({ error: 'No video URL found in the response' });
+            }
+        } else {
+            res.status(400).json({ error: 'Invalid response from Instagram API' });
+        }
+    } catch (error) {
+        console.error('Error fetching Instagram video data:', error);
+        res.status(500).json({ error: 'Failed to fetch data from the Instagram API' });
+    }
+});
+
 
 
 

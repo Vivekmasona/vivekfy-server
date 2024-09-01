@@ -897,7 +897,7 @@ app.get('/api/ig', async (req, res) => {
         }
 
         // Instagram API URL
-        const apiUrl = `https://vivekfy.vercel.app/api/insta?link=${encodeURIComponent(video)}`;
+        const apiUrl = `https://vivekfy-all-api.vercel.app/api/insta?link=${encodeURIComponent(video)}`;
 
         // Fetch the JSON response from the Instagram API
         const response = await axios.get(apiUrl);

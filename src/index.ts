@@ -517,7 +517,7 @@ app.get('/stream', async (req: Request, res: Response) => {
   }
 });
 
-// Route for streaming YouTube audio in WEBM format via a third-party API
+// Route for downloading YouTube audio in the smallest possible WEBM format
 app.get('/webm', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;
 
@@ -536,7 +536,8 @@ app.get('/webm', async (req: Request, res: Response) => {
     const response = await axios.post(provider, {
       url: streamUrl,
       isAudioOnly: true,  // Set to true to indicate audio-only
-      aFormat: 'webm',   // Set format to WEBM
+      aFormat: 'webm',    // Set format to WEBM
+      aQuality: 'lowest', // Attempt to get the lowest quality
       filenamePattern: 'basic'
     }, {
       headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }

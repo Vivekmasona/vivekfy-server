@@ -931,6 +931,53 @@ app.get('/vivekfy3', async (req, res) => {
 });
 
 
+app.get('/vivekfy4', async (req, res) => {
+    const videoUrl = req.query.url;
+
+    if (!videoUrl) {
+        return res.status(400).send('Error: No URL provided.');
+    }
+
+    const videoId = extractVideoId(videoUrl);
+
+    if (!videoId) {
+        return res.status(400).send('Error: Invalid YouTube URL.');
+    }
+
+    const apiUrl = `https://invidious.privacyredirect.com/api/v1/videos/${videoId}`;
+
+    try {
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        // Extract adaptive format URL
+        const adaptiveFormats = data.adaptiveFormats || [];
+        let audioUrl = '';
+        let foundFirstUrl = false;  // To track the first found URL
+
+        for (const format of adaptiveFormats) {
+            if (format.url) {
+                if (foundFirstUrl) {
+                    // Found the second URL, use it
+                    audioUrl = format.url;
+                    break;
+                } else {
+                    // Skip the first URL and set the flag to true
+                    foundFirstUrl = true;
+                }
+            }
+        }
+
+        if (audioUrl) {
+            return res.redirect(audioUrl);
+        } else {
+            return res.status(404).send('No second adaptive format URL found');
+        }
+    } catch (error) {
+        console.error('Error fetching video details:', error);
+        return res.status(500).send('Error fetching video details.');
+    }
+});
 
 
 

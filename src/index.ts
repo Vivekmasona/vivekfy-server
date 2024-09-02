@@ -892,25 +892,12 @@ app.get('/vivekfy3', async (req, res) => {
     }
 });
 
-// Function to extract YouTube video ID from the provided URL
-function extractVideoId(url) {
-    const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-    const match = url.match(regex);
-    return match ? match[1] : null;
-}
-
-// Endpoint to redirect to the audio URL with itag 249
+// Endpoint to redirect to the audio URL with itag 249 using video ID
 app.get('/vivekfy4', async (req, res) => {
-    const videoUrl = req.query.url;
-
-    if (!videoUrl) {
-        return res.status(400).send('Error: No URL provided.');
-    }
-
-    const videoId = extractVideoId(videoUrl);
+    const videoId = req.query.id; // Accepting video ID directly
 
     if (!videoId) {
-        return res.status(400).send('Error: Invalid YouTube URL.');
+        return res.status(400).send('Error: No video ID provided.');
     }
 
     const apiUrl = `https://invidious.privacyredirect.com/api/v1/videos/${videoId}`;
@@ -940,6 +927,9 @@ app.get('/vivekfy4', async (req, res) => {
         return res.status(500).send('Error fetching video details.');
     }
 });
+
+
+
 
 
 

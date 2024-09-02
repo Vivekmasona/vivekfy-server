@@ -909,22 +909,27 @@ app.get("/getyt", async (req, res) => {
 
     // Check if data is available
     if (response.data && response.data.adaptiveFormats) {
+      console.log("adaptiveFormats data:", response.data.adaptiveFormats);
+
       // Find the format with itag 249
       const format = response.data.adaptiveFormats.find(
         (f) => f.itag === 249
       );
 
       if (format) {
+        console.log("Found format with itag 249:", format.url);
         // Redirect to the audio URL with itag 249
         return res.redirect(format.url);
       } else {
+        console.log("itag 249 not found in adaptiveFormats.");
         return res.status(404).send("Audio URL with itag 249 not found.");
       }
     } else {
+      console.log("No adaptive formats available in response data.");
       return res.status(404).send("No adaptive formats available.");
     }
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error("Error fetching video data:", error.message);
     res.status(500).send("An error occurred while fetching the video data.");
   }
 });

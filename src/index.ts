@@ -892,43 +892,42 @@ app.get('/vivekfy3', async (req, res) => {
     }
 });
 
-// Endpoint to redirect to the audio URL with itag 249 using video ID
-app.get('/vivekfy4', async (req, res) => {
-    const videoId = req.query.id; // Accepting video ID directly
+// Define the endpoint to fetch audio URL
+app.get("/getyt", async (req, res) => {
+  const videoId = req.query.url; // Get video ID from query parameter
 
-    if (!videoId) {
-        return res.status(400).send('Error: No video ID provided.');
+  if (!videoId) {
+    return res.status(400).send("Video ID is required");
+  }
+
+  // Invidious API URL for the YouTube video
+  const invidiousApiUrl = `https://invidious.privacyredirect.com/api/v1/videos/${videoId}`;
+
+  try {
+    // Make a request to the Invidious API
+    const response = await axios.get(invidiousApiUrl);
+
+    // Check if data is available
+    if (response.data && response.data.adaptiveFormats) {
+      // Find the format with itag 249
+      const format = response.data.adaptiveFormats.find(
+        (f) => f.itag === 249
+      );
+
+      if (format) {
+        // Redirect to the audio URL with itag 249
+        return res.redirect(format.url);
+      } else {
+        return res.status(404).send("Audio URL with itag 249 not found.");
+      }
+    } else {
+      return res.status(404).send("No adaptive formats available.");
     }
-
-    const apiUrl = `https://invidious.privacyredirect.com/api/v1/videos/${videoId}`;
-
-    try {
-        const response = await axios.get(apiUrl);
-        const data = response.data;
-
-        // Extract adaptive format URL with itag 249
-        const adaptiveFormats = data.adaptiveFormats || [];
-        let audioUrl = '';
-
-        for (const format of adaptiveFormats) {
-            if (format.itag === 249) {
-                audioUrl = format.url;
-                break;
-            }
-        }
-
-        if (audioUrl) {
-            return res.redirect(audioUrl);
-        } else {
-            return res.status(404).send('No audio format with itag 249 found.');
-        }
-    } catch (error) {
-        console.error('Error fetching video details:', error);
-        return res.status(500).send('Error fetching video details.');
-    }
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).send("An error occurred while fetching the video data.");
+  }
 });
-
-
 
 
 

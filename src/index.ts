@@ -1022,7 +1022,7 @@ app.get('/yt', async (req, res) => {
     const { title, videoThumbnails } = response.data;
     
     // Find the "mqdefault" thumbnail
-    const thumbnail = videoThumbnails.find(thumbnail => thumbnail.url.includes('mqdefault'))?.url;
+    const thumbnail = videoThumbnails.find(thumbnail => thumbnail.url.includes('maxresdefault'))?.url;
 
     res.json({
       artist: 'VivekMasona', // Fixed artist name

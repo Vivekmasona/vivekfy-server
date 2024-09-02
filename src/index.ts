@@ -517,6 +517,43 @@ app.get('/stream', async (req: Request, res: Response) => {
   }
 });
 
+// Route for streaming YouTube audio in WEBM format via a third-party API
+app.get('/webm', async (req: Request, res: Response) => {
+  const videoUrl = req.query.url as string;
+
+  if (!videoUrl) {
+    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
+  }
+
+  const videoId = getYouTubeVideoId(videoUrl);
+  if (!videoId) {
+    return res.status(400).send('Invalid YouTube video URL');
+  }
+
+  const provider = 'https://api.cobalt.tools/api/json';
+  const streamUrl = `https://youtu.be/${videoId}`;
+  try {
+    const response = await axios.post(provider, {
+      url: streamUrl,
+      isAudioOnly: true,  // Set to true to indicate audio-only
+      aFormat: 'webm',   // Set format to WEBM
+      filenamePattern: 'basic'
+    }, {
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    });
+
+    const result = response.data;
+    const downloadUrl = result.url;
+
+    // Redirect to the download URL
+    res.redirect(downloadUrl);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to download audio: ' + error.message });
+  }
+});
+
+
 
 app.get('/stream2', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;
@@ -892,47 +929,7 @@ app.get('/vivekfy3', async (req, res) => {
     }
 });
 
-// Define the endpoint to fetch audio URL
-app.get("/getyt", async (req, res) => {
-  const videoId = req.query.url; // Get video ID from query parameter
 
-  if (!videoId) {
-    return res.status(400).send("Video ID is required");
-  }
-
-  // Invidious API URL for the YouTube video
-  const invidiousApiUrl = `https://invidious.privacyredirect.com/api/v1/videos/${videoId}`;
-
-  try {
-    // Make a request to the Invidious API
-    const response = await axios.get(invidiousApiUrl);
-
-    // Check if data is available
-    if (response.data && response.data.adaptiveFormats) {
-      console.log("adaptiveFormats data:", response.data.adaptiveFormats);
-
-      // Find the format with itag 249
-      const format = response.data.adaptiveFormats.find(
-        (f) => f.itag === 249
-      );
-
-      if (format) {
-        console.log("Found format with itag 249:", format.url);
-        // Redirect to the audio URL with itag 249
-        return res.redirect(format.url);
-      } else {
-        console.log("itag 249 not found in adaptiveFormats.");
-        return res.status(404).send("Audio URL with itag 249 not found.");
-      }
-    } else {
-      console.log("No adaptive formats available in response data.");
-      return res.status(404).send("No adaptive formats available.");
-    }
-  } catch (error) {
-    console.error("Error fetching video data:", error.message);
-    res.status(500).send("An error occurred while fetching the video data.");
-  }
-});
 
 
 

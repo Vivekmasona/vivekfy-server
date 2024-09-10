@@ -980,7 +980,53 @@ app.get('/vivekfy4', async (req, res) => {
 });
 
 
+app.get('/meta', async (req, res) => {
+    const videoUrl = req.query.url;
 
+    if (!videoUrl) {
+        return res.status(400).send('Error: No URL provided.');
+    }
+
+    const videoId = extractVideoId(videoUrl);
+
+    if (!videoId) {
+        return res.status(400).send('Error: Invalid YouTube URL.');
+    }
+
+    const apiUrl = `https://invidious.privacyredirect.com/api/v1/videos/${videoId}`;
+
+    try {
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        // Extract adaptive format URL for audio
+        const adaptiveFormats = data.adaptiveFormats || [];
+        let audioUrl = '';
+
+        for (const format of adaptiveFormats) {
+            if (format.mimeType.includes('audio') && format.url) {
+                audioUrl = format.url;
+                break;
+            }
+        }
+
+        if (audioUrl) {
+            // Prepare the JSON response
+            const result = {
+                audioUrl: audioUrl,
+                thumbnail: data.videoThumbnails ? data.videoThumbnails[0].url : '',
+                title: data.title || '',
+                artist: 'Vivek Masona'
+            };
+            return res.json(result);
+        } else {
+            return res.status(404).send('No adaptive format URL found');
+        }
+    } catch (error) {
+        console.error('Error fetching video details:', error);
+        return res.status(500).send('Error fetching video details.');
+    }
+});
 
 // Endpoint to handle Facebook URLs
 app.get('/api/fb', async (req, res) => {

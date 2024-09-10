@@ -980,6 +980,9 @@ app.get('/vivekfy4', async (req, res) => {
 });
 
 
+
+
+
 app.get('/meta', async (req, res) => {
     const videoUrl = req.query.url;
 
@@ -999,24 +1002,23 @@ app.get('/meta', async (req, res) => {
         const response = await axios.get(apiUrl);
         const data = response.data;
 
-        // Extract adaptive format URL for audio
+        // Extract adaptive format URL
         const adaptiveFormats = data.adaptiveFormats || [];
         let audioUrl = '';
 
         for (const format of adaptiveFormats) {
-            if (format.mimeType.includes('audio') && format.url) {
+            if (format.url) {
                 audioUrl = format.url;
                 break;
             }
         }
 
         if (audioUrl) {
-            // Prepare the JSON response
             const result = {
                 audioUrl: audioUrl,
-                thumbnail: data.videoThumbnails ? data.videoThumbnails[0].url : '',
-                title: data.title || '',
-                artist: 'Vivek Masona'
+                thumbnail: data.videoThumbnails ? data.videoThumbnails[0].url : null, // Get the first available thumbnail
+                title: data.title || 'Unknown Title', // Video title or default
+                artist: 'vivekmasona' // Fixed artist name
             };
             return res.json(result);
         } else {
@@ -1027,6 +1029,10 @@ app.get('/meta', async (req, res) => {
         return res.status(500).send('Error fetching video details.');
     }
 });
+
+
+
+
 
 // Endpoint to handle Facebook URLs
 app.get('/api/fb', async (req, res) => {

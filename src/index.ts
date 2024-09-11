@@ -1159,8 +1159,6 @@ app.get('/api/ig', async (req, res) => {
 });
 
 
-
-
 // Endpoint to get video details
 app.get('/yt', async (req, res) => {
   const videoId = req.query.videoId;
@@ -1172,21 +1170,23 @@ app.get('/yt', async (req, res) => {
   try {
     const response = await axios.get(`https://invidious.privacyredirect.com/api/v1/videos/${videoId}`);
     
-    const { title, videoThumbnails } = response.data;
-    
-    // Find the "mqdefault" thumbnail
-    const thumbnail = videoThumbnails.find(thumbnail => thumbnail.url.includes('maxresdefault'))?.url;
+    const { title } = response.data;
+
+    // Create the "mqdefault" thumbnail URL
+    const thumbnail = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
 
     res.json({
       artist: 'VivekMasona', // Fixed artist name
       title: title,
-      thumbnail: thumbnail || 'No thumbnail available'
+      thumbnail: thumbnail
     });
   } catch (error) {
     console.error('Error fetching video details:', error);
     res.status(500).json({ error: 'Failed to fetch video details' });
   }
 });
+
+
 
 
 

@@ -1197,7 +1197,7 @@ app.get('/yt', async (req, res) => {
   }
 
   try {
-    const response = await axios.get(`https://invidious.privacyredirect.com/api/v1/videos/${videoId}`);
+    const response = await axios.get(`https://inv.tux.pizza/api/v1/videos/${videoId}`);
     
     const { title } = response.data;
 

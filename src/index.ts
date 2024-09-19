@@ -1159,7 +1159,7 @@ app.get('/api/ig', async (req, res) => {
 });
 
 // Endpoint to get video details
-app.get('/deno', async (req, res) => {
+app.get('/yt', async (req, res) => {
   const videoId = req.query.videoId;
 
   if (!videoId) {
@@ -1170,6 +1170,7 @@ app.get('/deno', async (req, res) => {
     // Use the new API URL with the videoId parameter
     const response = await axios.get(`https://vivekfy.deno.dev/video?id=${videoId}`);
     
+    // Fetch title from the response of your API
     const { title } = response.data;
 
     // Create the "mqdefault" thumbnail URL
@@ -1177,8 +1178,8 @@ app.get('/deno', async (req, res) => {
 
     res.json({
       artist: 'VivekMasona', // Fixed artist name
-      title: title,
-      thumbnail: thumbnail
+      title: title,          // Use title from your API's JSON response
+      thumbnail: thumbnail   // Generate thumbnail URL
     });
   } catch (error) {
     console.error('Error fetching video details:', error);

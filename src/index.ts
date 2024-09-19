@@ -1216,7 +1216,32 @@ app.get('/yt', async (req, res) => {
 });
 
 
+app.get('/vid', async (req, res) => {
+    const videoId = req.query.id;
 
+    if (!videoId) {
+        return res.status(400).json({ error: 'Please provide a YouTube video ID' });
+    }
+
+    try {
+        const apiUrl = `https://vivekfy.deno.dev/video?id=${videoId}`;
+        const response = await axios.get(apiUrl);
+
+        // Extract necessary data from the API response
+        const { title, thumbnail, artist } = response.data;
+
+        // Send the result as JSON
+        res.json({
+            title: title,
+            thumbnail: thumbnail,
+            artist: artist
+        });
+
+    } catch (error) {
+        console.error('Error fetching video details:', error.message);
+        res.status(500).json({ error: 'Failed to fetch video details' });
+    }
+});
 
 
 app.get('/dl/poster', async (req, res) => {

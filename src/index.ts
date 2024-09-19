@@ -1215,7 +1215,6 @@ app.get('/yt', async (req, res) => {
   }
 });
 
-
 app.get('/vid', async (req, res) => {
     const videoId = req.query.id;
 
@@ -1224,17 +1223,24 @@ app.get('/vid', async (req, res) => {
     }
 
     try {
+        // Fetch video details from your Deno API
         const apiUrl = `https://vivekfy.deno.dev/video?id=${videoId}`;
         const response = await axios.get(apiUrl);
 
-        // Extract necessary data from the API response
-        const { title, thumbnail, artist } = response.data;
+        // Extract the title from the video data
+        const { title } = response.data.video;
 
-        // Send the result as JSON
+        // Construct the thumbnail URL using the videoId and 'mqdefault'
+        const thumbnail = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+
+        // Set a fixed artist name
+        const artist = 'vivekmasona';
+
+        // Send the response as JSON
         res.json({
             title: title,
-            thumbnail: thumbnail,
-            artist: artist
+            artist: artist,
+            thumbnail: thumbnail
         });
 
     } catch (error) {
@@ -1242,6 +1248,8 @@ app.get('/vid', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch video details' });
     }
 });
+
+
 
 
 app.get('/dl/poster', async (req, res) => {

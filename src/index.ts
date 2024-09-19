@@ -1159,7 +1159,7 @@ app.get('/api/ig', async (req, res) => {
 });
 
 // Endpoint to get video details
-app.get('/yt', async (req, res) => {
+app.get('/deno', async (req, res) => {
   const videoId = req.query.videoId;
 
   if (!videoId) {

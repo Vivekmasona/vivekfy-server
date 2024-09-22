@@ -1263,7 +1263,7 @@ app.get('/vid', async (req, res) => {
         const { title } = response.data.video;
 
         // Construct the thumbnail URL using the videoId and 'mqdefault'
-        const thumbnail = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        const thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
         // Set a fixed artist name
         const artist = 'vivekmasona';

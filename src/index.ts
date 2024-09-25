@@ -1307,9 +1307,6 @@ app.get('/vid2', async (req, res) => {
         // Watermark audio URL
         const watermarkAudio = 'https://github.com/Vivekmasona/dav12/raw/refs/heads/main/watermark.mp3';
 
-        // Text download URL from Vivekfy
-        const textDownload = 'https://vivekfy.deno.dev/download-text?id=' + videoId; // Example endpoint for text download
-
         // Send the response as JSON
         res.json({
             title: title,
@@ -1321,9 +1318,6 @@ app.get('/vid2', async (req, res) => {
             watermark: {
                 audio: watermarkAudio,
             },
-            Text: {
-                Author: "download from Vivekfy" // Adjusted structure for "Text" and "Author"
-            }
         });
 
     } catch (error) {

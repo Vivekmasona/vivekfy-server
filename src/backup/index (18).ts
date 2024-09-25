@@ -119,6 +119,10 @@ app.get('/json', async (req, res) => {
 
 
 
+
+
+
+
 app.get('/tts', async (req: Request, res: Response) => {
     const text: string | undefined = req.query.text as string;
 
@@ -167,8 +171,6 @@ app.get('/tts', async (req: Request, res: Response) => {
         res.status(error.response ? error.response.status : 500).send(error.message);
     }
 });
-
-        
 
 
 app.get('/json2', async (req, res) => {
@@ -269,6 +271,64 @@ app.get('/cdn', async (req, res) => {
 });
 
 
+// Route to search for videos
+app.get('/search', async (req: Request, res: Response) => {
+  const query = req.query.q as string;
+
+  if (!query) {
+    return res.status(400).json({ error: 'Query parameter q is required' });
+  }
+
+  try {
+    // Fetch search results from Invidious API
+    const searchResponse = await axios.get(`https://invidious.jing.rocks/api/v1/search`, {
+      params: { q: query }
+    });
+    res.json(searchResponse.data);
+  } catch (error) {
+    console.error('Error fetching search results:', error);
+    res.status(500).json({ error: 'Failed to fetch search results' });
+  }
+});
+
+// Route to fetch video details
+app.get('/video/:id', async (req: Request, res: Response) => {
+  const id = req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Video ID is required' });
+  }
+
+  try {
+    // Fetch video details from Invidious API
+    const videoResponse = await axios.get(`https://invidious.jing.rocks/api/v1/videos/${id}`);
+    const videoData = videoResponse.data;
+    
+    if (videoData) {
+      const music = videoData.author.endsWith(' - Topic') ? '&w=720&h=720&fit=cover' : '';
+      if (music) {
+        videoData.author = videoData.author.replace(' - Topic', '');
+      }
+      const videoDetails = {
+        author: videoData.author || 'Unknown Author',
+        title: videoData.title || 'Unknown Title',
+        thumbnail: `https://wsrv.nl?url=${encodeURIComponent(`https://i.ytimg.com/vi_webp/${id}/maxresdefault.webp`)}${music}`,
+        audioUrl: `https://www.youtube.com/watch?v=${id}`
+      };
+      res.json(videoDetails);
+    } else {
+      res.status(404).json({ error: 'Video not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching video details:', error);
+    res.status(500).json({ error: 'Failed to fetch video details' });
+  }
+});
+
+
+
+
+
 app.get('/download-v2', async (req, res) => {
     const mediaUrl = req.query.url;
 
@@ -341,9 +401,9 @@ app.get('/api', (req: Request, res: Response) => {
         if (link.includes('youtu.be') || link.includes('youtube.com')) {
             serverLink = `https://vivekfy.vercel.app/download?index=22&url=${link}`;
         } else if (link.includes('facebook.com')) {
-            serverLink = `https://vivekfy.vercel.app/download?index=8&url=${link}`;
+            serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
         } else if (link.includes('instagram.com')) {
-            serverLink = `https://vivekfy.vercel.app/download?index=4&url=${link}`;
+            serverLink = `https://vivekfy.vercel.app/api/ig?url=${link}`;
         } else if (link.includes('twitter.com') || link.includes('x.com')) {
             serverLink = `https://vivekfy.vercel.app/download-v2?index=2&url=${link}`;
         } else if (link.includes('pinterest.com') || link.includes('pin.it')) {
@@ -422,7 +482,39 @@ app.get('/download', async (req, res) => {
     }
 });
 
+app.get('/audio-download', async (req: Request, res: Response) => {
+  const videoUrl = req.query.url as string;
 
+  if (!videoUrl) {
+    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
+  }
+
+  const videoId = getYouTubeVideoId(videoUrl);
+  if (!videoId) {
+    return res.status(400).send('Invalid YouTube video URL');
+  }
+
+  const provider = 'https://api.cobalt.tools/api/json';
+  const streamUrl = `https://youtu.be/${videoId}`;
+  
+  try {
+    const response = await axios.post(provider, {
+      url: streamUrl,
+      isAudioOnly: true,  // Ensure it's audio-only
+      aFormat: 'm4a',     // Set format to M4A
+      quality: 'low',     // Ensure the lowest quality is selected
+      filenamePattern: 'basic'
+    }, {
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    });
+
+    const result = response.data;
+    res.redirect(result.url); // Redirect to the stream URL for M4A
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to stream audio: ' + error.message });
+  }
+});
 
 // Route for streaming YouTube audio in OPUS format via a third-party API
 app.get('/stream', async (req: Request, res: Response) => {
@@ -456,6 +548,95 @@ app.get('/stream', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to stream audio: ' + error.message });
   }
 });
+
+// Route for downloading YouTube audio in the smallest possible WEBM format
+app.get('/webm', async (req: Request, res: Response) => {
+  const videoUrl = req.query.url as string;
+
+  if (!videoUrl) {
+    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
+  }
+
+  const videoId = getYouTubeVideoId(videoUrl);
+  if (!videoId) {
+    return res.status(400).send('Invalid YouTube video URL');
+  }
+
+  const provider = 'https://api.cobalt.tools/api/json';
+  const streamUrl = `https://youtu.be/${videoId}`;
+  try {
+    const response = await axios.post(provider, {
+      url: streamUrl,
+      isAudioOnly: true,  // Set to true to indicate audio-only
+      aFormat: 'webm',    // Set format to WEBM
+      aQuality: 'lowest', // Attempt to get the lowest quality
+      filenamePattern: 'basic'
+    }, {
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    });
+
+    const result = response.data;
+    const downloadUrl = result.url;
+
+    // Redirect to the download URL
+    res.redirect(downloadUrl);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to download audio: ' + error.message });
+  }
+});
+
+
+
+app.get('/stream2', async (req: Request, res: Response) => {
+  const videoUrl = req.query.url as string;
+
+  if (!videoUrl) {
+    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
+  }
+
+  const videoId = getYouTubeVideoId(videoUrl);
+  if (!videoId) {
+    return res.status(400).send('Invalid YouTube video URL');
+  }
+
+  const provider = 'https://api.cobalt.tools/api/json';
+  const streamUrl = `https://youtu.be/${videoId}`;
+
+  try {
+    // Fetching stream URL from Cobalt.tools API
+    const response = await axios.post(provider, {
+      url: streamUrl,
+      isAudioOnly: true,  // Set to true to indicate audio-only
+      aFormat: 'opus',   // Set format to OPUS
+      filenamePattern: 'basic'
+    }, {
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    });
+
+    const result = response.data;
+    const audioStreamUrl = result.url;
+
+    // Extract thumbnail URL and channel name (if provided in response)
+    const thumbnailUrl = result.thumbnail; // Assuming response has thumbnail URL
+    const channelName = result.channel; // Assuming response has channel name
+
+    // Embed thumbnail and metadata into the audio file (This is a placeholder, actual implementation will vary)
+    const ffmpegCommand = `ffmpeg -i "${audioStreamUrl}" -i "${thumbnailUrl}" -map 0:a -map 1 -c copy -metadata artist="${channelName}" -id3v2_version 3 output_with_metadata.opus`;
+
+    // Here you should run the ffmpeg command using a child process (this is just a sample command)
+    // Once the ffmpeg processing is done, serve the file
+    res.redirect(audioStreamUrl); // Redirect to the processed stream URL with embedded metadata
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to stream audio: ' + error.message });
+  }
+});
+
+
+
+
 
 
 // Route for direct media download via a third-party API
@@ -542,10 +723,8 @@ app.get('/img', async (req: Request, res: Response) => {
 });
 
 
-
-
-const CARTESIA_API_KEY = '65d41a00-6aea-4fc7-b168-6e690c8d88a5';
-const VOICE_ID = 'cd17ff2d-5ea4-4695-be8f-42193949b946';
+const CARTESIA_API_KEY = 'e1dadf99-c903-4da2-bc1a-1f4c069d8bd3'; // Updated API key
+const VOICE_ID = 'cd17ff2d-5ea4-4695-be8f-42193949b946'; // Your Voice ID
 
 app.get('/tts/v2', async (req, res) => {
   const { text } = req.query;
@@ -592,6 +771,548 @@ app.get('/tts/v2', async (req, res) => {
   }
 });
 
+
+const API_KEY = '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'; // Replace with your actual API key
+const API_URL = 'https://api.groq.com/openai/v1/chat/completions'; // Replace with the actual Esme API endpoint
+
+// Endpoint to handle AI questions via GET request
+app.get('/ai', async (req, res) => {
+    const question = req.query.questions;
+    if (!question) {
+        return res.status(400).send('questions parameter is required');
+    }
+
+    try {
+        // Send the question to the AI model
+        const response = await axios.post(API_URL, {
+            model: 'llama-3.1-8b-instant',
+            messages: [{ role: 'user', content: question }],
+            max_tokens: 200,
+            temperature: 0.7,
+            top_p: 1,
+            stream: false
+        }, {
+            headers: {
+                'Authorization': `Bearer ${API_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const botReply = response.data.choices[0].message.content.trim();
+
+        // Convert AI response text to TTS
+        const audioUrl = googleTTS.getAudioUrl(botReply, {
+            lang: 'hi', // Hindi language code
+            slow: false,
+            host: 'https://translate.google.com',
+        });
+
+        // Redirect to TTS audio URL
+        res.redirect(audioUrl);
+    } catch (error) {
+        res.status(error.response ? error.response.status : 500).send(error.message);
+    }
+});
+
+
+
+// Function to extract video ID from YouTube URL
+const extractVideoId = (url) => {
+    let videoId = null;
+
+    // Match for youtube.com/watch?v= format
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^\&\?\/]+)/;
+    const youtubeMatch = url.match(youtubeRegex);
+    if (youtubeMatch && youtubeMatch[1]) {
+        videoId = youtubeMatch[1];
+    }
+
+    // Match for youtu.be/ format
+    if (!videoId) {
+        const youtuBeRegex = /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^\&\?\/]+)/;
+        const youtuBeMatch = url.match(youtuBeRegex);
+        if (youtuBeMatch && youtuBeMatch[1]) {
+            videoId = youtuBeMatch[1];
+        }
+    }
+
+    return videoId;
+};
+
+app.get('/vivekfy', async (req, res) => {
+    const videoUrl = req.query.url;
+
+    if (!videoUrl) {
+        return res.status(400).send('Error: No URL provided.');
+    }
+
+    const videoId = extractVideoId(videoUrl);
+
+    if (!videoId) {
+        return res.status(400).send('Error: Invalid YouTube URL.');
+    }
+
+    const apiUrl = `https://just4cats.tv/api/v1/videos/${videoId}`;
+
+    try {
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        // Extract adaptive format URL
+        const adaptiveFormats = data.adaptiveFormats || [];
+        let audioUrl = '';
+
+        for (const format of adaptiveFormats) {
+            if (format.url) {
+                audioUrl = format.url;
+                break;
+            }
+        }
+
+        if (audioUrl) {
+            return res.redirect(audioUrl);
+        } else {
+            return res.status(404).send('No adaptive format URL found');
+        }
+    } catch (error) {
+        console.error('Error fetching video details:', error);
+        return res.status(500).send('Error fetching video details.');
+    }
+});
+
+app.get('/vivekfy2', async (req, res) => {
+    const videoUrl = req.query.url;
+
+    if (!videoUrl) {
+        return res.status(400).send('Error: No URL provided.');
+    }
+
+    const videoId = extractVideoId(videoUrl);
+
+    if (!videoId) {
+        return res.status(400).send('Error: Invalid YouTube URL.');
+    }
+
+    const apiUrl = `https://invidious.nerdvpn.de/api/v1/videos/${videoId}`;
+
+    try {
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        // Extract adaptive format URL
+        const adaptiveFormats = data.adaptiveFormats || [];
+        let audioUrl = '';
+
+        for (const format of adaptiveFormats) {
+            if (format.url) {
+                audioUrl = format.url;
+                break;
+            }
+        }
+
+        if (audioUrl) {
+            return res.redirect(audioUrl);
+        } else {
+            return res.status(404).send('No adaptive format URL found');
+        }
+    } catch (error) {
+        console.error('Error fetching video details:', error);
+        return res.status(500).send('Error fetching video details.');
+    }
+});
+
+app.get('/vivekfy3', async (req, res) => {
+    const videoUrl = req.query.url;
+
+    if (!videoUrl) {
+        return res.status(400).send('Error: No URL provided.');
+    }
+
+    const videoId = extractVideoId(videoUrl);
+
+    if (!videoId) {
+        return res.status(400).send('Error: Invalid YouTube URL.');
+    }
+
+    const apiUrl = `https://invidious.privacyredirect.com/api/v1/videos/${videoId}`;
+
+    try {
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        // Extract adaptive format URL
+        const adaptiveFormats = data.adaptiveFormats || [];
+        let audioUrl = '';
+
+        for (const format of adaptiveFormats) {
+            if (format.url) {
+                audioUrl = format.url;
+                break;
+            }
+        }
+
+        if (audioUrl) {
+            return res.redirect(audioUrl);
+        } else {
+            return res.status(404).send('No adaptive format URL found');
+        }
+    } catch (error) {
+        console.error('Error fetching video details:', error);
+        return res.status(500).send('Error fetching video details.');
+    }
+});
+
+
+app.get('/vivekfy4', async (req, res) => {
+    const videoUrl = req.query.url;
+
+    if (!videoUrl) {
+        return res.status(400).send('Error: No URL provided.');
+    }
+
+    const videoId = extractVideoId(videoUrl);
+
+    if (!videoId) {
+        return res.status(400).send('Error: Invalid YouTube URL.');
+    }
+
+    const apiUrl = `https://just4cats.tv/api/v1/videos/${videoId}`;
+
+    try {
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        // Extract adaptive format URL
+        const adaptiveFormats = data.adaptiveFormats || [];
+        let audioUrl = '';
+        let foundFirstUrl = false;  // To track the first found URL
+
+        for (const format of adaptiveFormats) {
+            if (format.url) {
+                if (foundFirstUrl) {
+                    // Found the second URL, use it
+                    audioUrl = format.url;
+                    break;
+                } else {
+                    // Skip the first URL and set the flag to true
+                    foundFirstUrl = true;
+                }
+            }
+        }
+
+        if (audioUrl) {
+            return res.redirect(audioUrl);
+        } else {
+            return res.status(404).send('No second adaptive format URL found');
+        }
+    } catch (error) {
+        console.error('Error fetching video details:', error);
+        return res.status(500).send('Error fetching video details.');
+    }
+});
+
+
+
+
+
+app.get('/meta', async (req, res) => {
+    const videoUrl = req.query.url;
+
+    if (!videoUrl) {
+        return res.status(400).send('Error: No URL provided.');
+    }
+
+    const videoId = extractVideoId(videoUrl);
+
+    if (!videoId) {
+        return res.status(400).send('Error: Invalid YouTube URL.');
+    }
+
+    const apiUrl = `https://invidious.privacyredirect.com/api/v1/videos/${videoId}`;
+
+    try {
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        // Extract adaptive format URL
+        const adaptiveFormats = data.adaptiveFormats || [];
+        let audioUrl = '';
+
+        for (const format of adaptiveFormats) {
+            if (format.url) {
+                audioUrl = format.url;
+                break;
+            }
+        }
+
+        if (audioUrl) {
+            const result = {
+                audioUrl: audioUrl,
+                thumbnail: data.videoThumbnails ? data.videoThumbnails[0].url : null, // Get the first available thumbnail
+                title: data.title || 'Unknown Title', // Video title or default
+                artist: 'vivekmasona' // Fixed artist name
+            };
+            return res.json(result);
+        } else {
+            return res.status(404).send('No adaptive format URL found');
+        }
+    } catch (error) {
+        console.error('Error fetching video details:', error);
+        return res.status(500).send('Error fetching video details.');
+    }
+});
+
+
+
+
+
+
+app.get('/meta2', async (req, res) => {
+    const videoUrl = req.query.url;
+
+    if (!videoUrl) {
+        return res.status(400).send('Error: No URL provided.');
+    }
+
+    const videoId = extractVideoId(videoUrl);
+
+    if (!videoId) {
+        return res.status(400).send('Error: Invalid YouTube URL.');
+    }
+
+    const apiUrl = `https://invidious.privacyredirect.com/api/v1/videos/${videoId}`;
+
+    try {
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        // Extract adaptive format URL
+        const adaptiveFormats = data.adaptiveFormats || [];
+        let audioUrl = '';
+
+        for (const format of adaptiveFormats) {
+            if (format.url) {
+                audioUrl = format.url;
+                break;
+            }
+        }
+
+        if (audioUrl) {
+            const result = {
+                audioUrl: audioUrl,
+                thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`, // Fixed thumbnail URL format
+                title: data.title || 'Unknown Title', // Video title or default
+                artist: 'vivekmasona' // Fixed artist name
+            };
+            return res.json(result);
+        } else {
+            return res.status(404).send('No adaptive format URL found');
+        }
+    } catch (error) {
+        console.error('Error fetching video details:', error);
+        return res.status(500).send('Error fetching video details.');
+    }
+});
+
+
+
+
+
+
+
+// Endpoint to handle Facebook URLs
+app.get('/api/fb', async (req, res) => {
+    try {
+        const { video } = req.query;
+
+        // Check if the video query parameter is provided
+        if (!video) {
+            return res.status(400).json({ error: 'Please provide a video query parameter' });
+        }
+
+        // Facebook API URL
+        const apiUrl = `https://vivekfy-all-api.vercel.app/api/fb?video=${encodeURIComponent(video)}`;
+
+        // Fetch the JSON response from the Facebook API
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        if (data) {
+            if (data.hd) {
+                res.redirect(data.hd);  // Redirect to the HD URL if available
+            } else if (data.sd) {
+                res.redirect(data.sd);  // Redirect to the SD URL if HD is not available
+            } else {
+                res.status(400).json({ error: 'No video URL found in the response' });
+            }
+        } else {
+            res.status(400).json({ error: 'Invalid response from Facebook API' });
+        }
+    } catch (error) {
+        console.error('Error fetching Facebook video data:', error);
+        res.status(500).json({ error: 'Failed to fetch data from the Facebook API' });
+    }
+});
+
+// Endpoint to handle Instagram URLs
+app.get('/api/ig', async (req, res) => {
+    try {
+        const { url } = req.query;
+
+        // Check if the url query parameter is provided
+        if (!url) {
+            return res.status(400).json({ error: 'Please provide a url query parameter' });
+        }
+
+        // Instagram API URL with the provided URL parameter
+        const apiUrl = `https://vivekfy-all-api.vercel.app/api/insta?link=${encodeURIComponent(url)}`;
+
+        // Fetch the JSON response from the Instagram API
+        const response = await axios.get(apiUrl);
+        const data = response.data;
+
+        if (data && data.data && data.data.length > 0) {
+            // Extract the video URL from the JSON response
+            const videoUrl = data.data[0].url; // Assuming the first item in the array is the required video URL
+
+            if (videoUrl) {
+                // Redirect to the video URL
+                return res.redirect(videoUrl);
+            } else {
+                return res.status(400).json({ error: 'No video URL found in the response' });
+            }
+        } else {
+            return res.status(400).json({ error: 'Invalid response from Instagram API' });
+        }
+    } catch (error) {
+        console.error('Error fetching Instagram video data:', error);
+        res.status(500).json({ error: 'Failed to fetch data from the Instagram API' });
+    }
+});
+
+// Endpoint to get video details
+app.get('/deno', async (req, res) => {
+  const videoId = req.query.videoId;
+
+  if (!videoId) {
+    return res.status(400).json({ error: 'videoId query parameter is required' });
+  }
+
+  try {
+    // Use the new API URL with the videoId parameter
+    const response = await axios.get(`https://vivekfy.deno.dev/video?id=${videoId}`);
+    
+    // Fetch title from the response of your API
+    const { title } = response.data;
+
+    // Create the "mqdefault" thumbnail URL
+    const thumbnail = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+
+    res.json({
+      artist: 'VivekMasona', // Fixed artist name
+      title: title,          // Use title from your API's JSON response
+      thumbnail: thumbnail   // Generate thumbnail URL
+    });
+  } catch (error) {
+    console.error('Error fetching video details:', error);
+    res.status(500).json({ error: 'Failed to fetch video details' });
+  }
+});
+
+
+// Endpoint to get video details
+app.get('/yt', async (req, res) => {
+  const videoId = req.query.videoId;
+
+  if (!videoId) {
+    return res.status(400).json({ error: 'videoId query parameter is required' });
+  }
+
+  try {
+    const response = await axios.get(`https://inv.tux.pizza/api/v1/videos/${videoId}`);
+    
+    const { title } = response.data;
+
+    // Create the "mqdefault" thumbnail URL
+    const thumbnail = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+
+    res.json({
+      artist: 'VivekMasona', // Fixed artist name
+      title: title,
+      thumbnail: thumbnail
+    });
+  } catch (error) {
+    console.error('Error fetching video details:', error);
+    res.status(500).json({ error: 'Failed to fetch video details' });
+  }
+});
+
+app.get('/vid', async (req, res) => {
+    const videoId = req.query.id;
+
+    if (!videoId) {
+        return res.status(400).json({ error: 'Please provide a YouTube video ID' });
+    }
+
+    try {
+        // Fetch video details from your Deno API
+        const apiUrl = `https://vivekfy.deno.dev/video?id=${videoId}`;
+        const response = await axios.get(apiUrl);
+
+        // Extract the title from the video data
+        const { title } = response.data.video;
+
+        // Construct the thumbnail URL using the videoId and 'mqdefault'
+        const thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+        // Set a fixed artist name
+        const artist = 'vivekmasona';
+
+        // Send the response as JSON
+        res.json({
+            title: title,
+            artist: artist,
+            thumbnail: thumbnail
+        });
+
+    } catch (error) {
+        console.error('Error fetching video details:', error.message);
+        res.status(500).json({ error: 'Failed to fetch video details' });
+    }
+});
+
+
+
+
+app.get('/dl/poster', async (req, res) => {
+    const youtubeUrl = req.query.url;
+
+    if (!youtubeUrl) {
+        return res.status(400).send('URL parameter is required');
+    }
+
+    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+    if (!videoId) {
+        return res.status(400).send('Invalid YouTube URL');
+    }
+
+    try {
+        const coverUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        const coverResponse = await axios.get(coverUrl, { responseType: 'arraybuffer' });
+
+        const coverFileName = `${videoId}_cover.jpg`;
+
+        res.setHeader('Content-Disposition', `attachment; filename="${coverFileName}"`);
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.send(coverResponse.data);
+        
+    } catch (error) {
+        console.error('Error fetching poster image:', error.message);
+        res.status(error.response ? error.response.status : 500).send('An error occurred.');
+    }
+});
 
 
 

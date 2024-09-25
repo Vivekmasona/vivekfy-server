@@ -1280,7 +1280,56 @@ app.get('/vid', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch video details' });
     }
 });
+app.get('/vid2', async (req, res) => {
+    const videoId = req.query.id;
 
+    if (!videoId) {
+        return res.status(400).json({ error: 'Please provide a YouTube video ID' });
+    }
+
+    try {
+        // Fetch video details from your Deno API
+        const apiUrl = `https://vivekfy.deno.dev/video?id=${videoId}`;
+        const response = await axios.get(apiUrl);
+
+        // Extract the title from the video data
+        const { title } = response.data.video;
+
+        // Construct the thumbnail URLs using the videoId
+        const thumbnail1 = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        const thumbnail2 = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+        // Set a fixed artist name
+        const artist = 'vivekmasona';
+
+        // Watermark audio URL
+        const watermarkAudio = 'https://github.com/Vivekmasona/dav12/raw/refs/heads/main/watermark.mp3';
+
+        // Text download URL from Vivekfy
+        const textDownload = 'https://vivekfy.deno.dev/download-text?id=' + videoId; // Example endpoint for text download
+
+        // Send the response as JSON
+        res.json({
+            title: title,
+            artist: artist,
+            thumbnails: {
+                maxres: thumbnail1,
+                hqdefault: thumbnail2,
+            },
+            watermark: {
+                audio: watermarkAudio,
+            },
+            download: {
+                text: textDownload, // Include the text download URL
+                message: "download from Vivekfy" // Add the text message
+            },
+        });
+
+    } catch (error) {
+        console.error('Error fetching video details:', error.message);
+        res.status(500).json({ error: 'Failed to fetch video details' });
+    }
+});
 
 
 

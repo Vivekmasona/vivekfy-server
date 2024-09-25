@@ -1280,6 +1280,8 @@ app.get('/vid', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch video details' });
     }
 });
+
+
 app.get('/vid2', async (req, res) => {
     const videoId = req.query.id;
 
@@ -1319,10 +1321,9 @@ app.get('/vid2', async (req, res) => {
             watermark: {
                 audio: watermarkAudio,
             },
-            download: {
-                text: textDownload, // Include the text download URL
-                message: "download from Vivekfy" // Add the text message
-            },
+            Text: {
+                Author: "download from Vivekfy" // Adjusted structure for "Text" and "Author"
+            }
         });
 
     } catch (error) {
@@ -1330,7 +1331,6 @@ app.get('/vid2', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch video details' });
     }
 });
-
 
 
 app.get('/dl/poster', async (req, res) => {

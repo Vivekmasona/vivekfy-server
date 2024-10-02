@@ -852,7 +852,7 @@ app.get('/vivekfy', async (req, res) => {
         return res.status(400).send('Error: Invalid YouTube URL.');
     }
 
-    const apiUrl = `https://just4cats.tv/api/v1/videos/${videoId}`;
+    const apiUrl = `https://inv.nadeko.net/api/v1/videos/${videoId}`;
 
     try {
         const response = await axios.get(apiUrl);

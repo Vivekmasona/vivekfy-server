@@ -1357,54 +1357,70 @@ app.get('/dl/poster', async (req, res) => {
     }
 });
 
-// Route for streaming YouTube audio in OPUS format via a third-party API
-app.get('/streamm', async (req: Request, res: Response) => {
-  const videoUrl = req.query.url as string;
+app.get('/saver', async (req, res) => {
+    const videoUrl = req.query.vkr;
 
-  if (!videoUrl) {
-    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
-  }
+    if (!videoUrl) {
+        res.status(400).send("No video URL provided.");
+        return;
+    }
 
-  const videoId = getYouTubeVideoId(videoUrl);
-  if (!videoId) {
-    return res.status(400).send('Invalid YouTube video URL');
-  }
+    const format = 'mp3';
+    const initialApiUrl = `https://ab.cococococ.com/ajax/download.php?format=${format}&url=${encodeURIComponent(videoUrl)}&api=dfcb6d76f2f6a9894gjkege8a4ab232222`;
+    const progressApiUrl = 'https://p.oceansaver.in/ajax/progress.php?id=';
 
-  const provider = 'https://api.cobalt.tools/api/json';
-  const streamUrl = `https://youtu.be/${videoId}`;
-  try {
-    const response = await axios.post(provider, {
-      url: streamUrl,
-      isAudioOnly: true,  // Set to true to indicate audio-only
-      aFormat: 'opus',   // Set format to OPUS
-      filenamePattern: 'basic'
-    }, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
-    });
+    try {
+        // Step 1: Start conversion and get the ID
+        const initialResponse = await axios.get(initialApiUrl);
+        const initialData = initialResponse.data;
 
-    const result = response.data;
+        if (!initialData || !initialData.success || !initialData.id) {
+            res.status(500).send("Failed to start MP3 conversion.");
+            return;
+        }
 
-    // Set headers for streaming
-    res.writeHead(200, {
-      'Content-Type': 'audio/opus', // Set the content type to audio/opus
-      'Transfer-Encoding': 'chunked', // Enable chunked transfer encoding for streaming
-    });
+        const id = initialData.id;
+        let downloadUrl = null;
+        const sleepDuration = 3000; // 3 seconds
 
-    // Stream the audio directly
-    const audioStream = await axios({
-      method: 'get',
-      url: result.url,
-      responseType: 'stream'
-    });
+        // Step 2: Poll for the download URL until conversion completes
+        while (true) {
+            const progressResponse = await axios.get(`${progressApiUrl}${id}`);
+            const progressData = progressResponse.data;
 
-    // Pipe the audio stream to the response
-    audioStream.data.pipe(res);
+            if (progressData.download_url) {
+                downloadUrl = progressData.download_url;
+                break; // Exit loop once URL is ready
+            }
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to stream audio: ' + error.message });
-  }
+            if (progressData.progress < 1000) {
+                await new Promise(resolve => setTimeout(resolve, sleepDuration));
+            } else {
+                await new Promise(resolve => setTimeout(resolve, sleepDuration));
+            }
+        }
+
+        // Step 3: Stream the MP3 file directly for download
+        if (downloadUrl) {
+            res.setHeader('Content-Disposition', 'attachment; filename="download.mp3"');
+            axios({
+                url: downloadUrl,
+                method: 'GET',
+                responseType: 'stream',
+            }).then(response => {
+                response.data.pipe(res);
+            }).catch(error => {
+                res.status(500).send("Error downloading MP3 file.");
+            });
+        } else {
+            res.status(500).send("Conversion failed or no download URL available.");
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("An error occurred.");
+    }
 });
+
 
 
 // Default route

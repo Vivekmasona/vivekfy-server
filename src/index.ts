@@ -1459,8 +1459,8 @@ app.get('/getdl', async (req, res) => {
             const progressResponse = await axios.get(`${progressApiUrl}${id}`);
             const progressData = progressResponse.data;
 
-            if (progressData.download_url) {
-                downloadUrl = progressData.download_url;
+            if (progressData.getdl) {
+                downloadUrl = progressData.getdl;
                 break;
             }
 
@@ -1482,22 +1482,62 @@ app.get('/getdl', async (req, res) => {
         res.status(500).send("An error occurred.");
     }
 });
-app.get('/row', (req, res) => {
-    const videoUrl = req.query.vkr;
 
+
+app.get('/direct', async (req, res) => {
+    const videoUrl = req.query.vkr;
     if (!videoUrl) {
-        res.status(400).send("No video URL provided.");
+        res.status(400).send('No video URL provided');
         return;
     }
 
-    const format = 'mp3'; // Set format to mp3
-    // Generate the initial API URL
+    const format = 'mp3';
     const initialApiUrl = `https://ab.cococococ.com/ajax/download.php?format=${format}&url=${encodeURIComponent(videoUrl)}&api=dfcb6d76f2f6a9894gjkege8a4ab232222`;
+    const progressApiUrl = 'https://p.oceansaver.in/ajax/progress.php?id=';
 
-    // Respond with the initial URL directly
-    res.json({ initialDownloadUrl: initialApiUrl });
+    try {
+        // Step 1: Start the download and get the ID
+        const initialResponse = await axios.get(initialApiUrl);
+        const initialData = initialResponse.data;
+
+        if (!initialData || !initialData.success || !initialData.id) {
+            res.status(500).send('Failed to start download process');
+            return;
+        }
+
+        const id = initialData.id;
+        let retryCount = 0;
+        const retryLimit = 10;
+        let downloadUrl = null;
+
+        // Step 2: Check download progress and get the final download URL
+        while (retryCount < retryLimit) {
+            const progressResponse = await axios.get(progressApiUrl + id);
+            const progressData = progressResponse.data;
+
+            if (progressData.download_url) {
+                downloadUrl = progressData.download_url;
+                break;
+            }
+
+            if (progressData.progress && progressData.progress < 1000) {
+                retryCount++;
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds before retrying
+            } else {
+                break;
+            }
+        }
+
+        if (downloadUrl) {
+            // Redirect to the download URL
+            res.redirect(downloadUrl);
+        } else {
+            res.status(500).send('Download URL not available after conversion');
+        }
+    } catch (error) {
+        res.status(500).send('An error occurred');
+    }
 });
-
 
 // Default route
 app.get('/', (req: Request, res: Response) => {

@@ -1482,6 +1482,21 @@ app.get('/getdl', async (req, res) => {
         res.status(500).send("An error occurred.");
     }
 });
+app.get('/row', (req, res) => {
+    const videoUrl = req.query.vkr;
+
+    if (!videoUrl) {
+        res.status(400).send("No video URL provided.");
+        return;
+    }
+
+    const format = 'mp3'; // Set format to mp3
+    // Generate the initial API URL
+    const initialApiUrl = `https://ab.cococococ.com/ajax/download.php?format=${format}&url=${encodeURIComponent(videoUrl)}&api=dfcb6d76f2f6a9894gjkege8a4ab232222`;
+
+    // Respond with the initial URL directly
+    res.json({ initialDownloadUrl: initialApiUrl });
+});
 
 
 // Default route

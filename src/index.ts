@@ -1357,7 +1357,54 @@ app.get('/dl/poster', async (req, res) => {
     }
 });
 
+// Route for streaming YouTube audio in OPUS format via a third-party API
+app.get('/streamm', async (req: Request, res: Response) => {
+  const videoUrl = req.query.url as string;
 
+  if (!videoUrl) {
+    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
+  }
+
+  const videoId = getYouTubeVideoId(videoUrl);
+  if (!videoId) {
+    return res.status(400).send('Invalid YouTube video URL');
+  }
+
+  const provider = 'https://api.cobalt.tools/api/json';
+  const streamUrl = `https://youtu.be/${videoId}`;
+  try {
+    const response = await axios.post(provider, {
+      url: streamUrl,
+      isAudioOnly: true,  // Set to true to indicate audio-only
+      aFormat: 'opus',   // Set format to OPUS
+      filenamePattern: 'basic'
+    }, {
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    });
+
+    const result = response.data;
+
+    // Set headers for streaming
+    res.writeHead(200, {
+      'Content-Type': 'audio/opus', // Set the content type to audio/opus
+      'Transfer-Encoding': 'chunked', // Enable chunked transfer encoding for streaming
+    });
+
+    // Stream the audio directly
+    const audioStream = await axios({
+      method: 'get',
+      url: result.url,
+      responseType: 'stream'
+    });
+
+    // Pipe the audio stream to the response
+    audioStream.data.pipe(res);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to stream audio: ' + error.message });
+  }
+});
 
 
 // Default route

@@ -1421,6 +1421,67 @@ app.get('/saver', async (req, res) => {
     }
 });
 
+app.get('/getlink', (req, res) => {
+    const videoUrl = req.query.vkr;
+
+    if (!videoUrl) {
+        res.status(400).send("No video URL provided.");
+        return;
+    }
+
+    // Generate a unique download URL for the client
+    const downloadLink = `${req.protocol}://${req.get('host')}/start_download?vkr=${encodeURIComponent(videoUrl)}`;
+    res.json({ downloadLink });
+});
+
+app.get('/getdl', async (req, res) => {
+    const videoUrl = req.query.vkr;
+    const format = 'mp3';
+    const initialApiUrl = `https://ab.cococococ.com/ajax/download.php?format=${format}&url=${encodeURIComponent(videoUrl)}&api=dfcb6d76f2f6a9894gjkege8a4ab232222`;
+    const progressApiUrl = 'https://p.oceansaver.in/ajax/progress.php?id=';
+    let downloadUrl = null;
+    const sleepDuration = 3000;
+
+    try {
+        // Step 1: Initiate conversion
+        const initialResponse = await axios.get(initialApiUrl);
+        const initialData = initialResponse.data;
+
+        if (!initialData || !initialData.success || !initialData.id) {
+            res.status(500).send("Failed to start MP3 conversion.");
+            return;
+        }
+
+        const id = initialData.id;
+
+        // Step 2: Poll progress until completion
+        while (true) {
+            const progressResponse = await axios.get(`${progressApiUrl}${id}`);
+            const progressData = progressResponse.data;
+
+            if (progressData.download_url) {
+                downloadUrl = progressData.download_url;
+                break;
+            }
+
+            if (progressData.progress < 1000) {
+                await new Promise(resolve => setTimeout(resolve, sleepDuration));
+            } else {
+                await new Promise(resolve => setTimeout(resolve, sleepDuration));
+            }
+        }
+
+        // Step 3: Redirect to download URL once ready
+        if (downloadUrl) {
+            res.redirect(downloadUrl);
+        } else {
+            res.status(500).send("Conversion failed or no download URL available.");
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("An error occurred.");
+    }
+});
 
 
 // Default route

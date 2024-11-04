@@ -1548,17 +1548,27 @@ app.get('/vfy', async (req, res) => {
         return res.status(400).send('Error: No URL provided.');
     }
 
-    // Extract the number from the "click" parameter
-    const number = parseInt(click.replace('click', ''));
-    if (isNaN(number) || number <= 0) {
-        return res.status(400).send('Error: Invalid "click" parameter.');
-    }
-
     const apiUrl = `https://vkrdownloader.xyz/server?api_key=vkrdownloader&vkr=${encodeURIComponent(url)}`;
 
     try {
         const response = await axios.get(apiUrl);
         const data = response.data; // Assuming this is an array of URLs
+
+        // If 'click' parameter is not provided, respond with all URLs
+        if (!click) {
+            // Return all URLs as a JSON object with index numbers
+            const urlsWithNumbers = data.map((url, index) => ({
+                number: index + 1,
+                url: url
+            }));
+            return res.json({ availableUrls: urlsWithNumbers });
+        }
+
+        // If 'click' parameter is provided, validate and redirect to the specific URL
+        const number = parseInt(click);
+        if (isNaN(number) || number <= 0) {
+            return res.status(400).send('Error: Invalid "click" parameter.');
+        }
 
         // Check if the requested number exists in the data
         if (number <= data.length) {
@@ -1572,6 +1582,7 @@ app.get('/vfy', async (req, res) => {
         return res.status(500).send('Error fetching video details.');
     }
 });
+
 
 
 

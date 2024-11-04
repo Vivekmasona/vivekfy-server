@@ -1542,25 +1542,37 @@ app.get('/direct', async (req, res) => {
 
 app.get('/vfy', async (req, res) => {
     const { click, url } = req.query;
-    const number = parseInt(click.replace('click', '')); // Extract the number from "click1", "click2", etc.
+
+    // Check if URL is provided
+    if (!url) {
+        return res.status(400).send('Error: No URL provided.');
+    }
+
+    // Extract the number from the "click" parameter
+    const number = parseInt(click.replace('click', ''));
+    if (isNaN(number) || number <= 0) {
+        return res.status(400).send('Error: Invalid "click" parameter.');
+    }
+
+    const apiUrl = `https://vkrdownloader.xyz/server?api_key=vkrdownloader&vkr=${encodeURIComponent(url)}`;
 
     try {
-        // Fetch JSON data from the provided API URL with URL encoding
-        const apiUrl = `https://vkrdownloader.xyz/server?api_key=vkrdownloader&vkr=${encodeURIComponent(url)}`;
         const response = await axios.get(apiUrl);
         const data = response.data; // Assuming this is an array of URLs
 
         // Check if the requested number exists in the data
-        if (number > 0 && number <= data.length) {
-            const directUrl = data[number - 1]; // Get URL by index
+        if (number <= data.length) {
+            const directUrl = data[number - 1];
             return res.redirect(directUrl); // Redirect to the URL
         } else {
-            return res.status(404).json({ error: 'Invalid URL number' });
+            return res.status(404).send('Error: Requested URL number not found.');
         }
     } catch (error) {
-        return res.status(500).json({ error: 'Failed to fetch URL data' });
+        console.error('Error fetching video details:', error);
+        return res.status(500).send('Error fetching video details.');
     }
 });
+
 
 
 // Default route

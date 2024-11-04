@@ -1539,6 +1539,30 @@ app.get('/direct', async (req, res) => {
     }
 });
 
+
+app.get('/vfy', async (req, res) => {
+    const { click, url } = req.query;
+    const number = parseInt(click.replace('click', '')); // Extract the number from "click1", "click2", etc.
+
+    try {
+        // Fetch JSON data from the provided API URL with URL encoding
+        const apiUrl = `https://vkrdownloader.xyz/server?api_key=vkrdownloader&vkr=${encodeURIComponent(url)}`;
+        const response = await axios.get(apiUrl);
+        const data = response.data; // Assuming this is an array of URLs
+
+        // Check if the requested number exists in the data
+        if (number > 0 && number <= data.length) {
+            const directUrl = data[number - 1]; // Get URL by index
+            return res.redirect(directUrl); // Redirect to the URL
+        } else {
+            return res.status(404).json({ error: 'Invalid URL number' });
+        }
+    } catch (error) {
+        return res.status(500).json({ error: 'Failed to fetch URL data' });
+    }
+});
+
+
 // Default route
 app.get('/', (req: Request, res: Response) => {
   res.json({ query: 'None' });

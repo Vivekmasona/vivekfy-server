@@ -1618,6 +1618,7 @@ app.get('/vivekapi', async (req, res) => {
 
 
 
+
 // Endpoint to handle requests to /json2
 app.get('/vivekdl', async (req, res) => {
     const targetUrl = req.query.vfy;
@@ -1678,7 +1679,8 @@ app.get('/vivekdl', async (req, res) => {
             console.log(`Downloading from: ${downloadUrl}`);
 
             // Set headers for downloading the file
-            res.setHeader('Content-Disposition', `attachment; filename="${title || 'download'}"`);
+            const sanitizedTitle = title.replace(/[<>:"/\\|?*]+/g, ''); // Sanitize the title for file naming
+            res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle || 'download'}.mp4"`);
             res.setHeader('Content-Type', 'application/octet-stream');
 
             // Stream the file from the download URL

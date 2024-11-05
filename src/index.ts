@@ -1540,48 +1540,82 @@ app.get('/direct', async (req, res) => {
 });
 
 
-app.get('/vfy', async (req, res) => {
-    const { click, url } = req.query;
 
-    // Check if URL is provided
-    if (!url) {
-        return res.status(400).send('Error: No URL provided.');
+
+
+// Function to extract URLs from JSON data
+const extractUrls = (data) => {
+    const urls = [];
+    const recursiveSearch = (obj) => {
+        for (const key in obj) {
+            const value = obj[key];
+            if (Array.isArray(value)) {
+                value.forEach(item => recursiveSearch(item));
+            } else if (typeof value === 'string' && isValidUrl(value)) {
+                urls.push(value);
+            }
+        }
+    };
+    recursiveSearch(data);
+    return urls;
+};
+
+// Function to validate a URL
+const isValidUrl = (string) => {
+    const urlPattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+        '((([a-z\\d]([a-z\\d-]*[a-z\\d])?)\\.)+([a-z]{2,}|[a-z\\d-]{2,})|' + // domain name
+        'localhost|' + // localhost
+        '\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|' + // IPv4
+        '\([0-9a-fA-F:\]+)\)' + // IPv6
+        '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+        '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+        '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+    return !!urlPattern.test(string);
+};
+
+// Endpoint to get URLs or redirect to a specific one
+app.get('/vivek', async (req, res) => {
+    const targetUrl = req.query.vfy;
+    const redirectIndex = parseInt(req.query.redirect, 10);
+
+    if (!targetUrl) {
+        return res.status(400).json({ error: 'Missing vfy query parameter' });
     }
 
-    const apiUrl = `https://vkrdownloader.xyz/server?api_key=vkrdownloader&vkr=${encodeURIComponent(url)}`;
+    // Construct the API URL
+    const apiUrl = `https://vkrdownloader.xyz/server/?api_key=vkrdownloader&vkr=${encodeURIComponent(targetUrl)}`;
 
     try {
+        // Make the API request
         const response = await axios.get(apiUrl);
-        const data = response.data; // Assuming this is an array of URLs
+        const jsonData = response.data;
 
-        // If 'click' parameter is not provided, respond with all URLs
-        if (!click) {
-            // Return all URLs as a JSON object with index numbers
-            const urlsWithNumbers = data.map((url, index) => ({
-                number: index + 1,
-                url: url
-            }));
-            return res.json({ availableUrls: urlsWithNumbers });
-        }
+        // Extract URLs from the JSON response
+        const urls = extractUrls(jsonData);
 
-        // If 'click' parameter is provided, validate and redirect to the specific URL
-        const number = parseInt(click);
-        if (isNaN(number) || number <= 0) {
-            return res.status(400).send('Error: Invalid "click" parameter.');
-        }
-
-        // Check if the requested number exists in the data
-        if (number <= data.length) {
-            const directUrl = data[number - 1];
-            return res.redirect(directUrl); // Redirect to the URL
+        if (redirectIndex && urls[redirectIndex - 1]) {
+            // Redirect to the URL at the specified index
+            return res.redirect(urls[redirectIndex - 1]);
         } else {
-            return res.status(404).send('Error: Requested URL number not found.');
+            // Output the URLs if redirect is not requested
+            res.setHeader('Content-Type', 'text/plain');
+            if (urls.length > 0) {
+                urls.forEach((url, index) => {
+                    res.write(`(${index + 1}) ${url}\n`);
+                });
+                res.end();
+            } else {
+                res.send("No URLs found in the response.");
+            }
         }
     } catch (error) {
-        console.error('Error fetching video details:', error);
-        return res.status(500).send('Error fetching video details.');
+        console.error('Error fetching data:', error);
+        return res.status(500).json({ error: 'Error fetching data: ' + error.message });
     }
 });
+
+
+
 
 
 

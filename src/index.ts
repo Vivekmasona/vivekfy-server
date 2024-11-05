@@ -1545,7 +1545,7 @@ app.get('/direct', async (req, res) => {
 
 
 // Endpoint to handle requests to /json2
-app.get('/json2', async (req, res) => {
+app.get('/vivekapi', async (req, res) => {
     const targetUrl = req.query.vfy;
     const redirectIndex = parseInt(req.query.redirect);
 

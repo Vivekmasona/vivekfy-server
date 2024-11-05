@@ -1543,48 +1543,16 @@ app.get('/direct', async (req, res) => {
 
 
 
-// Function to extract URLs from JSON data
-const extractUrls = (data) => {
-    const urls = [];
-    const recursiveSearch = (obj) => {
-        for (const key in obj) {
-            const value = obj[key];
-            if (Array.isArray(value)) {
-                value.forEach(item => recursiveSearch(item));
-            } else if (typeof value === 'string' && isValidUrl(value)) {
-                urls.push(value);
-            }
-        }
-    };
-    recursiveSearch(data);
-    return urls;
-};
 
-// Function to validate a URL
-const isValidUrl = (string) => {
-    const urlPattern = new RegExp('^(https?:\\/\\/)?' + // protocol
-        '((([a-z\\d]([a-z\\d-]*[a-z\\d])?)\\.)+([a-z]{2,}|[a-z\\d-]{2,})|' + // domain name
-        'localhost|' + // localhost
-        '\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|' + // IPv4
-        '\([0-9a-fA-F:\]+)\)' + // IPv6
-        '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
-        '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
-        '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
-    return !!urlPattern.test(string);
-};
-
-// Endpoint to get URLs or redirect to a specific one
-app.get('/json4', async (req, res) => {
+// Endpoint to handle requests to /json2
+app.get('/json2', async (req, res) => {
     const targetUrl = req.query.vfy;
-    const redirectIndex = parseInt(req.query.redirect, 10);
-
-    console.log('Received request:', req.query); // Log request parameters
+    const redirectIndex = parseInt(req.query.redirect);
 
     if (!targetUrl) {
-        return res.status(400).json({ error: 'Missing vfy query parameter' });
+        return res.status(400).json({ error: 'Missing URL parameter' });
     }
 
-    // Construct the API URL
     const apiUrl = `https://vkrdownloader.xyz/server/?api_key=vkrdownloader&vkr=${encodeURIComponent(targetUrl)}`;
 
     try {
@@ -1592,7 +1560,34 @@ app.get('/json4', async (req, res) => {
         const response = await axios.get(apiUrl);
         const jsonData = response.data;
 
-        console.log('API Response:', jsonData); // Log the API response
+        console.log('API Response:', JSON.stringify(jsonData, null, 2)); // Log the API response
+
+        // Function to validate URL
+        const isValidUrl = (url) => {
+            const regex = /^(ftp|http|https):\/\/[^ "]+$/;
+            return regex.test(url);
+        };
+
+        // Function to extract URLs from JSON data
+        const extractUrls = (data) => {
+            const urls = [];
+            const recursiveSearch = (obj) => {
+                if (typeof obj === 'object' && obj !== null) {
+                    for (const key in obj) {
+                        const value = obj[key];
+                        if (Array.isArray(value)) {
+                            value.forEach(item => recursiveSearch(item));
+                        } else if (typeof value === 'string' && isValidUrl(value)) {
+                            urls.push(value);
+                        } else if (typeof value === 'object') {
+                            recursiveSearch(value); // Recurse into nested objects
+                        }
+                    }
+                }
+            };
+            recursiveSearch(data);
+            return urls;
+        };
 
         // Extract URLs from the JSON response
         const urls = extractUrls(jsonData);

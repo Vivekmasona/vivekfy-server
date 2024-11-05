@@ -1618,24 +1618,23 @@ app.get('/vivekapi', async (req, res) => {
 
 
 
-// Endpoint to handle video/audio downloads
+// Endpoint to handle requests to /json2
 app.get('/vivekdl', async (req, res) => {
     const targetUrl = req.query.vfy;
-    const downloadIndex = parseInt(req.query.dl);
+    const redirectIndex = parseInt(req.query.redirect);
 
     if (!targetUrl) {
-        return res.status(400).json({ error: 'Missing vfy URL parameter' });
+        return res.status(400).json({ error: 'Missing URL parameter' });
     }
 
     const apiUrl = `https://vkrdownloader.xyz/server/?api_key=vkrdownloader&vkr=${encodeURIComponent(targetUrl)}`;
 
     try {
-        // Make the API request to get video/audio details
+        // Make the API request
         const response = await axios.get(apiUrl);
         const jsonData = response.data;
 
-        // Log the API response for debugging
-        console.log('API Response:', JSON.stringify(jsonData, null, 2));
+        console.log('API Response:', JSON.stringify(jsonData, null, 2)); // Log the API response
 
         // Function to validate URL
         const isValidUrl = (url) => {
@@ -1643,23 +1642,21 @@ app.get('/vivekdl', async (req, res) => {
             return regex.test(url);
         };
 
-        // Function to extract media title and URLs from JSON data
-        const extractMediaInfo = (data) => {
-            const mediaInfo = {
-                title: '',
-                urls: [],
-            };
-
+        // Function to extract URLs and title from JSON data
+        const extractUrlsAndTitle = (data) => {
+            const urls = [];
+            let title = '';
             const recursiveSearch = (obj) => {
                 if (typeof obj === 'object' && obj !== null) {
                     for (const key in obj) {
                         const value = obj[key];
+                        if (key === 'title' && typeof value === 'string') {
+                            title = value; // Fetch the title
+                        }
                         if (Array.isArray(value)) {
                             value.forEach(item => recursiveSearch(item));
-                        } else if (key.toLowerCase() === 'title') {
-                            mediaInfo.title = value; // Extract the title
-                        } else if (isValidUrl(value)) {
-                            mediaInfo.urls.push(value); // Collect valid URLs
+                        } else if (typeof value === 'string' && isValidUrl(value)) {
+                            urls.push(value);
                         } else if (typeof value === 'object') {
                             recursiveSearch(value); // Recurse into nested objects
                         }
@@ -1667,29 +1664,37 @@ app.get('/vivekdl', async (req, res) => {
                 }
             };
             recursiveSearch(data);
-            return mediaInfo;
+            return { urls, title };
         };
 
-        // Extract media title and URLs from the JSON response
-        const mediaInfo = extractMediaInfo(jsonData);
-        console.log('Extracted Media Info:', mediaInfo); // Log extracted media info
+        // Extract URLs and title from the JSON response
+        const { urls, title } = extractUrlsAndTitle(jsonData);
 
-        // Check if a valid download index is specified
-        if (downloadIndex && mediaInfo.urls[downloadIndex - 1]) {
-            const downloadUrl = mediaInfo.urls[downloadIndex - 1];
-            const title = mediaInfo.title.replace(/[\/\\:*?"<>|]/g, ''); // Sanitize the title for the filename
+        console.log('Extracted URLs:', urls); // Log extracted URLs
 
-            // Set response headers for download
-            res.set({
-                'Content-Disposition': `attachment; filename="${title}.mp4"`, // Adjust extension based on media type
-                'Content-Type': 'application/octet-stream',
-            });
+        if (redirectIndex && urls[redirectIndex - 1]) {
+            // Download the URL at the specified index
+            const downloadUrl = urls[redirectIndex - 1];
+            console.log(`Downloading from: ${downloadUrl}`);
 
-            // Stream the media to the response
-            const mediaResponse = await axios.get(downloadUrl, { responseType: 'stream' });
-            mediaResponse.data.pipe(res); // Pipe the media stream to the response
+            // Set headers for downloading the file
+            res.setHeader('Content-Disposition', `attachment; filename="${title || 'download'}"`);
+            res.setHeader('Content-Type', 'application/octet-stream');
+
+            // Stream the file from the download URL
+            const downloadResponse = await axios.get(downloadUrl, { responseType: 'stream' });
+            downloadResponse.data.pipe(res);
         } else {
-            return res.status(404).json({ error: 'Invalid download index or no URLs found' });
+            // Output the URLs if redirect is not requested
+            res.setHeader('Content-Type', 'text/plain');
+            if (urls.length > 0) {
+                urls.forEach((url, index) => {
+                    res.write(`(${index + 1}) ${url}\n`);
+                });
+                res.end();
+            } else {
+                res.send("No URLs found in the response.");
+            }
         }
     } catch (error) {
         console.error('Error fetching data:', error);

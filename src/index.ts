@@ -1574,9 +1574,11 @@ const isValidUrl = (string) => {
 };
 
 // Endpoint to get URLs or redirect to a specific one
-app.get('/vivek', async (req, res) => {
+app.get('/json4', async (req, res) => {
     const targetUrl = req.query.vfy;
     const redirectIndex = parseInt(req.query.redirect, 10);
+
+    console.log('Received request:', req.query); // Log request parameters
 
     if (!targetUrl) {
         return res.status(400).json({ error: 'Missing vfy query parameter' });
@@ -1590,11 +1592,16 @@ app.get('/vivek', async (req, res) => {
         const response = await axios.get(apiUrl);
         const jsonData = response.data;
 
+        console.log('API Response:', jsonData); // Log the API response
+
         // Extract URLs from the JSON response
         const urls = extractUrls(jsonData);
 
+        console.log('Extracted URLs:', urls); // Log extracted URLs
+
         if (redirectIndex && urls[redirectIndex - 1]) {
             // Redirect to the URL at the specified index
+            console.log(`Redirecting to: ${urls[redirectIndex - 1]}`);
             return res.redirect(urls[redirectIndex - 1]);
         } else {
             // Output the URLs if redirect is not requested
@@ -1613,6 +1620,7 @@ app.get('/vivek', async (req, res) => {
         return res.status(500).json({ error: 'Error fetching data: ' + error.message });
     }
 });
+
 
 
 

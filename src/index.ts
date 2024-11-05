@@ -1618,6 +1618,84 @@ app.get('/vivekapi', async (req, res) => {
 
 
 
+// Endpoint to handle video/audio downloads
+app.get('/vivekdl', async (req, res) => {
+    const targetUrl = req.query.vfy;
+    const downloadIndex = parseInt(req.query.dl);
+
+    if (!targetUrl) {
+        return res.status(400).json({ error: 'Missing vfy URL parameter' });
+    }
+
+    const apiUrl = `https://vkrdownloader.xyz/server/?api_key=vkrdownloader&vkr=${encodeURIComponent(targetUrl)}`;
+
+    try {
+        // Make the API request to get video/audio details
+        const response = await axios.get(apiUrl);
+        const jsonData = response.data;
+
+        // Log the API response for debugging
+        console.log('API Response:', JSON.stringify(jsonData, null, 2));
+
+        // Function to validate URL
+        const isValidUrl = (url) => {
+            const regex = /^(ftp|http|https):\/\/[^ "]+$/;
+            return regex.test(url);
+        };
+
+        // Function to extract media title and URLs from JSON data
+        const extractMediaInfo = (data) => {
+            const mediaInfo = {
+                title: '',
+                urls: [],
+            };
+
+            const recursiveSearch = (obj) => {
+                if (typeof obj === 'object' && obj !== null) {
+                    for (const key in obj) {
+                        const value = obj[key];
+                        if (Array.isArray(value)) {
+                            value.forEach(item => recursiveSearch(item));
+                        } else if (key.toLowerCase() === 'title') {
+                            mediaInfo.title = value; // Extract the title
+                        } else if (isValidUrl(value)) {
+                            mediaInfo.urls.push(value); // Collect valid URLs
+                        } else if (typeof value === 'object') {
+                            recursiveSearch(value); // Recurse into nested objects
+                        }
+                    }
+                }
+            };
+            recursiveSearch(data);
+            return mediaInfo;
+        };
+
+        // Extract media title and URLs from the JSON response
+        const mediaInfo = extractMediaInfo(jsonData);
+        console.log('Extracted Media Info:', mediaInfo); // Log extracted media info
+
+        // Check if a valid download index is specified
+        if (downloadIndex && mediaInfo.urls[downloadIndex - 1]) {
+            const downloadUrl = mediaInfo.urls[downloadIndex - 1];
+            const title = mediaInfo.title.replace(/[\/\\:*?"<>|]/g, ''); // Sanitize the title for the filename
+
+            // Set response headers for download
+            res.set({
+                'Content-Disposition': `attachment; filename="${title}.mp4"`, // Adjust extension based on media type
+                'Content-Type': 'application/octet-stream',
+            });
+
+            // Stream the media to the response
+            const mediaResponse = await axios.get(downloadUrl, { responseType: 'stream' });
+            mediaResponse.data.pipe(res); // Pipe the media stream to the response
+        } else {
+            return res.status(404).json({ error: 'Invalid download index or no URLs found' });
+        }
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        return res.status(500).json({ error: 'Error fetching data: ' + error.message });
+    }
+});
 
 
 

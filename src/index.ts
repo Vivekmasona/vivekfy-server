@@ -1484,8 +1484,8 @@ app.get('/getdl', async (req, res) => {
 });
 
 
-app.get('/direct', async (req, res) => {
-    const videoUrl = req.query.vkr;
+app.get('/ocean', async (req, res) => {
+    const videoUrl = req.query.vfy;
     if (!videoUrl) {
         res.status(400).send('No video URL provided');
         return;

@@ -1730,19 +1730,14 @@ app.get('/audio2', async (req, res) => {
             }
         });
 
-        // Find the URL with itag 249
-        const audioStream = response.data.streams.find(stream => stream.itag === 249);
-
-        if (audioStream && audioStream.url) {
-            res.redirect(audioStream.url);
-        } else {
-            res.status(500).send('itag 249 audio URL not found in response');
-        }
+        // Send the full JSON response back to the client
+        res.json(response.data);
     } catch (error) {
         console.error('Error fetching YouTube data:', error.message);
         res.status(error.response ? error.response.status : 500).send(error.message);
     }
 });
+     
 
 
 

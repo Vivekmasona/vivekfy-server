@@ -1739,9 +1739,7 @@ app.get('/audio2', async (req, res) => {
 });
      
 
-
-    
-   app.get('/audio22', async (req, res) => {
+app.get('/audio22', async (req, res) => {
     const youtubeUrl = req.query.url;
 
     if (!youtubeUrl) {
@@ -1766,19 +1764,27 @@ app.get('/audio2', async (req, res) => {
             }
         });
 
-        // Look for the specific audio URL within the JSON response
-        const audioStream = response.data.streams.find(stream => stream.format_id === '139');
+        const data = response.data;
 
-        if (audioStream && audioStream.url) {
-            res.redirect(audioStream.url);  // Redirect to the audio URL
-        } else {
-            res.status(500).send('Audio URL with format_id 139 not found in response');
-        }
+        // Extract URLs by type
+        const structuredData = {
+            thumbnail: data.thumbnail ? [data.thumbnail] : [],
+            audio: data.streams ? data.streams.filter(stream => stream.mimeType.startsWith('audio')).map(stream => stream.url) : [],
+            video: data.streams ? data.streams.filter(stream => stream.mimeType.startsWith('video')).map(stream => stream.url) : []
+        };
+
+        // Send structured data as JSON
+        res.json(structuredData);
     } catch (error) {
         console.error('Error fetching YouTube data:', error.message);
         res.status(error.response ? error.response.status : 500).send(error.message);
     }
 });
+
+    
+   
+
+    
      
 
 

@@ -1739,6 +1739,8 @@ app.get('/audio2', async (req, res) => {
 });
      
 
+
+    
 app.get('/audio22', async (req, res) => {
     const youtubeUrl = req.query.url;
 
@@ -1764,24 +1766,19 @@ app.get('/audio22', async (req, res) => {
             }
         });
 
-        const data = response.data;
+        // Extract only adaptive URLs in serial order
+        const adaptiveUrls = response.data.adaptiveFormats.map((format, index) => ({
+            index: index + 1,
+            url: format.url
+        }));
 
-        // Extract URLs by type
-        const structuredData = {
-            thumbnail: data.thumbnail ? [data.thumbnail] : [],
-            audio: data.streams ? data.streams.filter(stream => stream.mimeType.startsWith('audio')).map(stream => stream.url) : [],
-            video: data.streams ? data.streams.filter(stream => stream.mimeType.startsWith('video')).map(stream => stream.url) : []
-        };
-
-        // Send structured data as JSON
-        res.json(structuredData);
+        // Send back only adaptive URLs in a numbered format
+        res.json(adaptiveUrls);
     } catch (error) {
         console.error('Error fetching YouTube data:', error.message);
         res.status(error.response ? error.response.status : 500).send(error.message);
     }
 });
-
-    
    
 
     

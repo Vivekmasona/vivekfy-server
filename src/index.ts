@@ -1740,7 +1740,6 @@ app.get('/audio2', async (req, res) => {
      
 
 
-    
 app.get('/audio22', async (req, res) => {
     const youtubeUrl = req.query.url;
 
@@ -1766,20 +1765,20 @@ app.get('/audio22', async (req, res) => {
             }
         });
 
-        // Extract only adaptive URLs in serial order
-        const adaptiveUrls = response.data.adaptiveFormats.map((format, index) => ({
-            index: index + 1,
-            url: format.url
-        }));
+        // Extract URLs in a numbered format
+        const urls = {};
+        response.data.formats.forEach((format, index) => {
+            urls[`url${index + 1}`] = format.url;  // Add each URL as url1, url2, etc.
+        });
 
-        // Send back only adaptive URLs in a numbered format
-        res.json(adaptiveUrls);
+        // Send the URLs back to the client
+        res.json(urls);
     } catch (error) {
         console.error('Error fetching YouTube data:', error.message);
         res.status(error.response ? error.response.status : 500).send(error.message);
     }
-});
-   
+});    
+ 
 
     
      

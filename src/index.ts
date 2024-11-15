@@ -1705,6 +1705,44 @@ app.get('/vivekdl', async (req, res) => {
 });
 
 
+app.get('/audio2', async (req, res) => {
+    const youtubeUrl = req.query.url;
+
+    if (!youtubeUrl) {
+        return res.status(400).send('URL parameter is required');
+    }
+
+    // Extract video ID from YouTube URL
+    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+    if (!videoId) {
+        return res.status(400).send('Invalid YouTube URL');
+    }
+
+    try {
+        // Make request to the RapidAPI endpoint for video info
+        const response = await axios.get(`https://youtube-video-info1.p.rapidapi.com/youtube-info`, {
+            params: { url: `https://www.youtube.com/watch?v=${videoId}` },
+            headers: {
+                'x-rapidapi-host': 'youtube-video-info1.p.rapidapi.com',
+                'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
+            }
+        });
+
+        // Find the URL with itag 249
+        const audioStream = response.data.streams.find(stream => stream.itag === 249);
+
+        if (audioStream && audioStream.url) {
+            res.redirect(audioStream.url);
+        } else {
+            res.status(500).send('itag 249 audio URL not found in response');
+        }
+    } catch (error) {
+        console.error('Error fetching YouTube data:', error.message);
+        res.status(error.response ? error.response.status : 500).send(error.message);
+    }
+});
 
 
 

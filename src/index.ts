@@ -37,8 +37,7 @@ app.get('/audio-dl', async (req, res) => {
         }
 
         // Define file paths
-        const tempDir = path.join(__dirname, 'temp');
-        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+        const tempDir = '/tmp'; // Use /tmp for temporary files
         const inputAudioPath = path.join(tempDir, `${originalTitle}.mp3`);
         const outputAudioPath = path.join(tempDir, `${originalTitle}_with_watermark.mp3`);
         const watermarkAudioUrl = 'https://github.com/Vivekmasona/dav12/raw/refs/heads/main/watermark.mp3';

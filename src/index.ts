@@ -482,6 +482,51 @@ app.get('/download', async (req, res) => {
     }
 });
 
+
+
+
+app.get('/api-play', async (req, res) => {
+    const youtubeUrl = req.query.url;
+
+    if (!youtubeUrl) {
+        return res.status(400).send('URL parameter is required');
+    }
+
+    // Extract video ID from YouTube URL
+    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+    if (!videoId) {
+        return res.status(400).send('Invalid YouTube URL');
+    }
+
+    try {
+        const response = await axios.get('https://youtube-mp36.p.rapidapi.com/dl', {
+            params: { id: videoId },
+            headers: {
+                'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
+                'x-rapidapi-key': 'd113bf2857mshf1bf82bbecd02d8p1e9d1djsn2f5b44680886'
+            }
+        });
+
+        // Assuming the response contains a field 'link' with the redirect URL
+        const downloadUrl = response.data.link;
+
+        if (downloadUrl) {
+            res.redirect(downloadUrl);
+        } else {
+            res.status(500).send('Download URL not found in response');
+        }
+    } catch (error) {
+        console.error('Error fetching YouTube data:', error.message);
+        res.status(error.response ? error.response.status : 500).send(error.message);
+    }
+});
+
+
+
+
+
 app.get('/audio-download', async (req: Request, res: Response) => {
   const videoUrl = req.query.url as string;
 

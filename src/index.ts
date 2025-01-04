@@ -574,7 +574,7 @@ app.get('/stream', async (req: Request, res: Response) => {
     return res.status(400).send('Invalid YouTube video URL');
   }
 
-  const provider = 'https://api.cobalt.tools/api/json';
+  const provider = 'https://api.cobalt.tools/';
   const streamUrl = `https://youtu.be/${videoId}`;
   try {
     const response = await axios.post(provider, {

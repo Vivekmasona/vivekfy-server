@@ -1829,6 +1829,54 @@ app.get('/audio22', async (req, res) => {
 
 
 
+// List of servers to try
+const servers = [
+  'https://inv-ca1-c.nadeko.net/latest_version?id={id}&itag=140&local=true',
+  'https://inv-us2-c.nadeko.net/latest_version?id={id}&itag=140&check=local=true',
+  'https://inv-eu2-c.nadeko.net/latest_version?id={id}&itag=140&check='
+];
+
+// Function to extract video ID from YouTube URL
+const extractYouTubeId = (url: string): string | null => {
+  const match = url.match(/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+};
+
+// Function to try servers one by one with the extracted ID
+const getAudioStream = async (videoId: string): Promise<string | null> => {
+  for (const serverTemplate of servers) {
+    const server = serverTemplate.replace('{id}', videoId);
+    try {
+      const response: AxiosResponse = await axios.get(server, {
+        maxRedirects: 0,  // Handle redirection manually
+        validateStatus: status => status >= 200 && status < 400  // Ignore redirect status
+      });
+      if (response.status === 302 && response.headers.location) {
+        return response.headers.location;  // Return redirect URL
+      }
+      return server;  // Return server URL if no redirection
+    } catch (error) {
+      console.error(`Failed to connect to server: ${server}`);
+    }
+  }
+  return null;  // Return null if all servers fail
+};
+
+app.get('/backend', async (req: Request, res: Response) => {
+  const youtubeUrl = req.query.url as string;
+  const videoId = extractYouTubeId(youtubeUrl);
+
+  if (!videoId) {
+    return res.status(400).send('Invalid YouTube URL.');
+  }
+
+  const redirectUrl = await getAudioStream(videoId);
+  if (redirectUrl) {
+    res.redirect(redirectUrl);  // Redirect to the working server
+  } else {
+    res.status(500).send('All servers are currently unavailable.');
+  }
+});
 
 
 

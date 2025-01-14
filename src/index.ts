@@ -580,11 +580,18 @@ app.get('/stream', async (req, res) => {
       }
     });
 
-    res.json(response.data); // Send JSON data as response
+    const downloadUrl = response.data.downloadUrl; // Extracting the 'downloadUrl' from JSON response
+    
+    if (downloadUrl) {
+      res.redirect(downloadUrl); // Automatically redirect to the download URL
+    } else {
+      res.status(500).send('Unable to retrieve download URL from the response.');
+    }
   } catch (error) {
     res.status(500).json({ error: error.response ? error.response.data : error.message });
   }
 });
+
 
 
 

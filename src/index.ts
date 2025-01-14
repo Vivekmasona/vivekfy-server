@@ -566,7 +566,7 @@ app.get('/audio-download', async (req: Request, res: Response) => {
 app.get('/stream', async (req, res) => {
   const youtubeUrl = req.query.url; // Get YouTube URL from query parameter
   if (!youtubeUrl) {
-    return res.status(400).send('You must provide a YouTube video URL as a query parameter, e.g., ?url=https://www.youtube.com/watch?v=phd1U2JIfUA');
+    return res.status(400).send('Please provide a YouTube URL as a query parameter, e.g., ?url=https://www.youtube.com/watch?v=phd1U2JIfUA');
   }
 
   try {
@@ -574,20 +574,21 @@ app.get('/stream', async (req, res) => {
       method: 'GET',
       url: `https://youtube-mp310.p.rapidapi.com/download/mp3`,
       params: { url: youtubeUrl },
-      responseType: 'stream', // Stream the audio directly
       headers: {
         'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a',
         'x-rapidapi-host': 'youtube-mp310.p.rapidapi.com'
       }
     });
 
-    res.writeHead(200, {
-      'Content-Type': 'audio/mpeg',
-      'Transfer-Encoding': 'chunked'
-    });
-    response.data.pipe(res); // Redirect the audio stream to the client
+    const audioUrl = response.data.download_url; // Assuming 'download_url' contains the audio file link
+
+    if (audioUrl) {
+      res.redirect(audioUrl); // Redirect client to the actual audio URL
+    } else {
+      res.status(500).send('Unable to retrieve audio URL.');
+    }
   } catch (error) {
-    res.status(500).send(`Error fetching audio: ${error.response ? error.response.data : error.message}`);
+    res.status(500).send(`Error: ${error.response ? error.response.data : error.message}`);
   }
 });
 

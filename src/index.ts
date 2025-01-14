@@ -563,46 +563,38 @@ app.get('/audio-download', async (req: Request, res: Response) => {
 
 
 
-app.get('/stream', (req, res) => {
+app.get('/stream', async (req, res) => {
   const youtubeUrl = req.query.url; // Get YouTube URL from query parameter
   if (!youtubeUrl) {
     return res.status(400).send('You must provide a YouTube video URL as a query parameter, e.g., ?url=https://www.youtube.com/watch?v=phd1U2JIfUA');
   }
 
-  const options = {
-    method: 'GET',
-    hostname: 'youtube-mp310.p.rapidapi.com',
-    port: null,
-    path: `/download/mp3?url=${encodeURIComponent(youtubeUrl)}`, // URL-encoded YouTube link
-    headers: {
-      'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a',
-      'x-rapidapi-host': 'youtube-mp310.p.rapidapi.com'
-    }
-  };
+  try {
+    const response = await axios({
+      method: 'GET',
+      url: `https://youtube-mp310.p.rapidapi.com/download/mp3`,
+      params: { url: youtubeUrl },
+      responseType: 'stream', // Stream the audio directly
+      headers: {
+        'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a',
+        'x-rapidapi-host': 'youtube-mp310.p.rapidapi.com'
+      }
+    });
 
-  const req = http.request(options, (streamRes) => {
-    if (streamRes.statusCode === 200) {
-      res.writeHead(200, {
-        'Content-Type': 'audio/mpeg',
-        'Transfer-Encoding': 'chunked'
-      });
-      streamRes.pipe(res); // Redirect the audio stream to the client
-    } else {
-      const chunks = [];
-      streamRes.on('data', (chunk) => chunks.push(chunk));
-      streamRes.on('end', () => {
-        const errorBody = Buffer.concat(chunks).toString();
-        res.status(streamRes.statusCode).send(`Error: ${errorBody}`);
-      });
-    }
-  });
-
-  req.on('error', (err) => {
-    res.status(500).send(`Request error: ${err.message}`);
-  });
-
-  req.end();
+    res.writeHead(200, {
+      'Content-Type': 'audio/mpeg',
+      'Transfer-Encoding': 'chunked'
+    });
+    response.data.pipe(res); // Redirect the audio stream to the client
+  } catch (error) {
+    res.status(500).send(`Error fetching audio: ${error.response ? error.response.data : error.message}`);
+  }
 });
+
+
+
+
+
 
 
 // Route for downloading YouTube audio in the smallest possible WEBM format

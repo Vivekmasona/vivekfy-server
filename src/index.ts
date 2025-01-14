@@ -580,17 +580,18 @@ app.get('/stream', async (req, res) => {
       }
     });
 
-    const audioUrl = response.data.download_url; // Assuming 'download_url' contains the audio file link
-
-    if (audioUrl) {
-      res.redirect(audioUrl); // Redirect client to the actual audio URL
+    const redirectUrl = response.data.url; // Assuming the key in JSON response is 'url'
+    
+    if (redirectUrl) {
+      res.redirect(redirectUrl); // Redirect to the URL from JSON response
     } else {
-      res.status(500).send('Unable to retrieve audio URL.');
+      res.status(500).send('Unable to retrieve the URL from the response.');
     }
   } catch (error) {
     res.status(500).send(`Error: ${error.response ? error.response.data : error.message}`);
   }
 });
+
 
 
 

@@ -580,17 +580,12 @@ app.get('/stream', async (req, res) => {
       }
     });
 
-    const redirectUrl = response.data.url; // Assuming the key in JSON response is 'url'
-    
-    if (redirectUrl) {
-      res.redirect(redirectUrl); // Redirect to the URL from JSON response
-    } else {
-      res.status(500).send('Unable to retrieve the URL from the response.');
-    }
+    res.json(response.data); // Send JSON data as response
   } catch (error) {
-    res.status(500).send(`Error: ${error.response ? error.response.data : error.message}`);
+    res.status(500).json({ error: error.response ? error.response.data : error.message });
   }
 });
+
 
 
 

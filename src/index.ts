@@ -561,38 +561,49 @@ app.get('/audio-download', async (req: Request, res: Response) => {
   }
 });
 
-// Route for streaming YouTube audio in OPUS format via a third-party API
-app.get('/stream', async (req: Request, res: Response) => {
-  const videoUrl = req.query.url as string;
 
-  if (!videoUrl) {
-    return res.status(400).send('Please provide a valid YouTube video URL as a query parameter');
+
+app.get('/stream', (req, res) => {
+  const youtubeUrl = req.query.url; // Get YouTube URL from query parameter
+  if (!youtubeUrl) {
+    return res.status(400).send('You must provide a YouTube video URL as a query parameter, e.g., ?url=https://www.youtube.com/watch?v=phd1U2JIfUA');
   }
 
-  const videoId = getYouTubeVideoId(videoUrl);
-  if (!videoId) {
-    return res.status(400).send('Invalid YouTube video URL');
-  }
+  const options = {
+    method: 'GET',
+    hostname: 'youtube-mp310.p.rapidapi.com',
+    port: null,
+    path: `/download/mp3?url=${encodeURIComponent(youtubeUrl)}`, // URL-encoded YouTube link
+    headers: {
+      'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a',
+      'x-rapidapi-host': 'youtube-mp310.p.rapidapi.com'
+    }
+  };
 
-  const provider = 'https://api.cobalt.tools/';
-  const streamUrl = `https://youtu.be/${videoId}`;
-  try {
-    const response = await axios.post(provider, {
-      url: streamUrl,
-      isAudioOnly: true,  // Set to true to indicate audio-only
-      aFormat: 'opus',   // Set format to OPUS
-      filenamePattern: 'basic'
-    }, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
-    });
+  const req = http.request(options, (streamRes) => {
+    if (streamRes.statusCode === 200) {
+      res.writeHead(200, {
+        'Content-Type': 'audio/mpeg',
+        'Transfer-Encoding': 'chunked'
+      });
+      streamRes.pipe(res); // Redirect the audio stream to the client
+    } else {
+      const chunks = [];
+      streamRes.on('data', (chunk) => chunks.push(chunk));
+      streamRes.on('end', () => {
+        const errorBody = Buffer.concat(chunks).toString();
+        res.status(streamRes.statusCode).send(`Error: ${errorBody}`);
+      });
+    }
+  });
 
-    const result = response.data;
-    res.redirect(result.url); // Redirect to the stream URL
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to stream audio: ' + error.message });
-  }
+  req.on('error', (err) => {
+    res.status(500).send(`Request error: ${err.message}`);
+  });
+
+  req.end();
 });
+
 
 // Route for downloading YouTube audio in the smallest possible WEBM format
 app.get('/webm', async (req: Request, res: Response) => {

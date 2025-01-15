@@ -118,56 +118,47 @@ app.get('/json', async (req, res) => {
 });
 
 
-
 app.get('/streamm', async (req, res) => {
-    const youtubeUrl = req.query.url;
+  const youtubeUrl = req.query.url; // Get YouTube URL from query parameter
+  if (!youtubeUrl) {
+    return res.status(400).send('Please provide a YouTube URL as a query parameter, e.g., ?url=https://www.youtube.com/watch?v=6RMENMtk3q4');
+  }
 
-    if (!youtubeUrl) {
-        return res.status(400).send('URL parameter is required');
+  try {
+    const response = await axios({
+      method: 'GET',
+      url: `https://youtube-mp310.p.rapidapi.com/download/mp3`,
+      params: { url: youtubeUrl },
+      headers: {
+        'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a',
+        'x-rapidapi-host': 'youtube-mp310.p.rapidapi.com'
+      }
+    });
+
+    const downloadUrl = response.data.downloadUrl;
+
+    if (downloadUrl) {
+      const audioBuffer = await axios({
+        method: 'GET',
+        url: downloadUrl,
+        responseType: 'arraybuffer' // Fully buffer the audio
+      });
+
+      const bufferStream = new stream.PassThrough();
+      bufferStream.end(Buffer.from(audioBuffer.data));
+
+      res.writeHead(200, {
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': audioBuffer.data.length
+      });
+
+      bufferStream.pipe(res); // Stream the buffered audio
+    } else {
+      res.status(500).send('Unable to retrieve download URL.');
     }
-
-    // Extract video ID from YouTube URL
-    const videoIdMatch = youtubeUrl.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    const videoId = videoIdMatch ? videoIdMatch[1] : null;
-
-    if (!videoId) {
-        return res.status(400).send('Invalid YouTube URL');
-    }
-
-    try {
-        const response = await axios.get('https://youtube-mp36.p.rapidapi.com/dl', {
-            params: { id: videoId },
-            headers: {
-                'x-rapidapi-host': 'youtube-mp36.p.rapidapi.com',
-                'x-rapidapi-key': 'd113bf2857mshf1bf82bbecd02d8p1e9d1djsn2f5b44680886'
-            }
-        });
-
-        const downloadUrl = response.data.link;
-
-        if (downloadUrl) {
-            const audioBuffer = await axios({
-                method: 'GET',
-                url: downloadUrl,
-                responseType: 'arraybuffer' // Fully buffer the audio
-            });
-
-            const bufferStream = new stream.PassThrough();
-            bufferStream.end(Buffer.from(audioBuffer.data));
-
-            res.writeHead(200, {
-                'Content-Type': 'audio/mpeg',
-                'Content-Length': audioBuffer.data.length
-            });
-
-            bufferStream.pipe(res); // Stream the buffered audio
-        } else {
-            res.status(500).send('Download URL not found in response');
-        }
-    } catch (error) {
-        console.error('Error fetching YouTube data:', error.message);
-        res.status(error.response ? error.response.status : 500).send(error.message);
-    }
+  } catch (error) {
+    res.status(500).json({ error: error.response ? error.response.data : error.message });
+  }
 });
 
 

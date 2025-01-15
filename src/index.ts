@@ -1930,7 +1930,7 @@ app.get('/backend', async (req: Request, res: Response) => {
 
 // List of servers to try
 const servers = [
- // 'https://inv-ca1-c.nadeko.net/latest_version?id={id}&itag=140&local=true',
+
   'https://inv-us2-c.nadeko.net/latest_version?id={id}&itag=140&check=local=true',
   'https://inv-eu2-c.nadeko.net/latest_version?id={id}&itag=140&check='
 ];
@@ -1979,8 +1979,8 @@ app.get('/backend1', async (req: Request, res: Response) => {
 
 // List of servers to try
 const servers = [
-  //'https://inv-ca1-c.nadeko.net/latest_version?id={id}&itag=140&local=true',
-  //'https://inv-us2-c.nadeko.net/latest_version?id={id}&itag=140&check=local=true',
+
+
   'https://inv-eu2-c.nadeko.net/latest_version?id={id}&itag=140&check='
 ];
 

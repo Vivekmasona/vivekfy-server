@@ -119,6 +119,44 @@ app.get('/json', async (req, res) => {
 
 
 
+app.get('/streamm', async (req, res) => {
+  const youtubeUrl = req.query.url; // Get YouTube URL from query parameter
+  if (!youtubeUrl) {
+    return res.status(400).send('Please provide a YouTube URL as a query parameter, e.g., ?url=https://www.youtube.com/watch?v=6RMENMtk3q4');
+  }
+
+  try {
+    const response = await axios({
+      method: 'GET',
+      url: `https://youtube-mp310.p.rapidapi.com/download/mp3`,
+      params: { url: youtubeUrl },
+      headers: {
+        'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a',
+        'x-rapidapi-host': 'youtube-mp310.p.rapidapi.com'
+      }
+    });
+
+    const downloadUrl = response.data.downloadUrl;
+
+    if (downloadUrl) {
+      const audioStream = await axios({
+        method: 'GET',
+        url: downloadUrl,
+        responseType: 'stream' // Stream the audio
+      });
+
+      res.writeHead(200, {
+        'Content-Type': 'audio/mpeg',
+        'Transfer-Encoding': 'chunked'
+      });
+      audioStream.data.pipe(res); // Pipe the audio stream to the client
+    } else {
+      res.status(500).send('Unable to retrieve download URL.');
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.response ? error.response.data : error.message });
+  }
+});
 
 
 

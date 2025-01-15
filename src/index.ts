@@ -139,17 +139,21 @@ app.get('/streamm', async (req, res) => {
     const downloadUrl = response.data.downloadUrl;
 
     if (downloadUrl) {
-      const audioStream = await axios({
+      const audioBuffer = await axios({
         method: 'GET',
         url: downloadUrl,
-        responseType: 'stream' // Stream the audio
+        responseType: 'arraybuffer' // Fully buffer the audio
       });
+
+      const bufferStream = new stream.PassThrough();
+      bufferStream.end(Buffer.from(audioBuffer.data));
 
       res.writeHead(200, {
         'Content-Type': 'audio/mpeg',
-        'Transfer-Encoding': 'chunked'
+        'Content-Length': audioBuffer.data.length
       });
-      audioStream.data.pipe(res); // Pipe the audio stream to the client
+
+      bufferStream.pipe(res); // Stream the buffered audio
     } else {
       res.status(500).send('Unable to retrieve download URL.');
     }

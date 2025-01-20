@@ -433,6 +433,52 @@ app.get('/download-v2', async (req, res) => {
 
 
 
+
+// API route to get the playback URL
+app.get('/playy', async (req, res) => {
+  const youtubeUrl = req.query.url;
+
+  if (!youtubeUrl) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'No URL provided. Use "?url=YOUTUBE_URL" in the query.',
+    });
+  }
+
+  try {
+    // yt-dlp options for extracting URL without downloading
+    const options = ['-e', '--no-warnings', '--quiet', '--extract-audio', '--audio-quality', '0', youtubeUrl];
+
+    // Execute the yt-dlp command
+    ytDlp.exec(options).then(info => {
+      const playbackUrl = info.url;
+
+      // Return the response as JSON
+      res.json({
+        status: 'success',
+        title: info.title,
+        playback_url: playbackUrl
+      });
+    }).catch(err => {
+      // If error occurs
+      res.status(500).json({
+        status: 'error',
+        message: 'Could not retrieve playback URL',
+        error: err.message
+      });
+    });
+  } catch (err) {
+    // General error handling
+    res.status(500).json({
+      status: 'error',
+      message: err.message,
+    });
+  }
+});
+
+
+
+
 // Endpoint to handle different platforms
 app.get('/api', (req: Request, res: Response) => {
     const link: string = req.query.url ? sanitizeURL(req.query.url as string) : '';

@@ -1975,7 +1975,7 @@ app.get('/backend', async (req: Request, res: Response) => {
 
 
 
-app.get('/recive', async (req, res) => {
+app.get('/recived', async (req, res) => {
   try {
     const url = req.query.url;
     
@@ -1999,6 +1999,41 @@ app.get('/recive', async (req, res) => {
   }
 });
 
+let storedData = null; // Variable to store the last received JSON data
+
+app.get('/recive', async (req, res) => {
+  try {
+    const url = req.query.url;
+    
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+    
+    // Fetch data from the provided URL
+    const response = await axios.get(url); // Example; adjust as needed
+    
+    if (!response.data) {
+      throw new Error('No data returned from the provided URL');
+    }
+    
+    const result = { url: url, data: response.data }; // Example result
+    storedData = result; // Store the received data
+    
+    res.json(result); // Return the result
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to process URL: ' + error.message });
+  }
+});
+
+// Endpoint to display stored data with status 500
+app.get('/print', (req, res) => {
+  if (!storedData) {
+    return res.status(500).json({ message: 'No data available' });
+  }
+  res.status(500).json(storedData); // Return stored data with status 500
+});
 
 
 

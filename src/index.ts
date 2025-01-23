@@ -162,6 +162,32 @@ app.get('/streamm', async (req, res) => {
 });
 
 
+// API endpoint to extract links
+app.get('/ex', async (req, res) => {
+    const { url } = req.query;
+
+    // Validate URL
+    if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'Valid URL is required' });
+    }
+
+    try {
+        // Fetch webpage HTML
+        const response = await axios.get(url);
+        const html = response.data;
+
+        // Extract links using regex
+        const links = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map(match => match[1]);
+
+        // Respond with extracted links
+        res.json({
+            url,
+            links,
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch webpage', details: error.message });
+    }
+});
 
 
 

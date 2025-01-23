@@ -1,7 +1,7 @@
 {
   "name": "audio-watermark",
   "version": "1.0.0",
-  "description": "A Node.js application to add a watermark to YouTube audio downloads.",
+  "description": "A Node.js application ",
   "main": "index.ts",
   "scripts": {
     "start": "node index.ts"

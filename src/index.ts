@@ -219,7 +219,67 @@ app.get('/ext', async (req, res) => {
 });
 
 
+// Route to extract links in numbered format
+app.get('/extract', async (req, res) => {
+    const { url } = req.query;
 
+    // Validate URL
+    if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'Valid URL is required' });
+    }
+
+    try {
+        // Fetch webpage HTML
+        const response = await axios.get(url);
+        const html = response.data;
+
+        // Extract links using regex
+        const links = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map(match => match[1]);
+
+        // Format links in numbered format
+        const formattedLinks = links.map((link, index) => `(${index + 1}) = ${link}`).join('\n');
+
+        res.send(`<pre>${formattedLinks}</pre>`);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch webpage', details: error.message });
+    }
+});
+
+// Route to extract links and optionally redirect to a specific one
+app.get('/hack', async (req, res) => {
+    const { url, redirect } = req.query;
+
+    // Validate URL
+    if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'Valid URL is required' });
+    }
+
+    try {
+        // Fetch webpage HTML
+        const response = await axios.get(url);
+        const html = response.data;
+
+        // Extract links using regex
+        const links = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map(match => match[1]);
+
+        // If `redirect` is provided, validate and redirect to the specified link
+        if (redirect) {
+            const redirectIndex = parseInt(redirect, 10) - 1;
+
+            if (!links[redirectIndex]) {
+                return res.status(404).json({ error: 'Invalid redirect index' });
+            }
+
+            return res.redirect(links[redirectIndex]);
+        }
+
+        // If no redirect, respond with the links in numbered format
+        const formattedLinks = links.map((link, index) => `(${index + 1}) = ${link}`).join('\n');
+        res.send(`<pre>${formattedLinks}</pre>`);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch webpage', details: error.message });
+    }
+});
 
 
 app.get('/tts', async (req: Request, res: Response) => {

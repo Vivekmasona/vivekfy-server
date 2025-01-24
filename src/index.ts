@@ -1,6 +1,5 @@
 import express from 'express';
 import ytdl from 'ytdl-core';
-import puppeteer from 'puppeteer';
 import axios from 'axios';
 import { Request, Response } from 'express';
 

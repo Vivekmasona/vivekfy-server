@@ -130,23 +130,29 @@ app.get('/hack', async (req, res) => {
         const response = await axios.get(url);
         const html = response.data;
 
-        // Extract URLs from source tags using regex
-        const links = [...html.matchAll(/<source[^>]+src="([^"]+)"/g)].map((match) => match[1]);
+        // Extract URLs from <source> tags
+        const sourceLinks = [...html.matchAll(/<source[^>]+src="([^"]+)"/g)].map((match) => match[1]);
+
+        // Extract URLs from <a> tags
+        const hrefLinks = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map((match) => match[1]);
+
+        // Combine both arrays
+        const allLinks = [...sourceLinks, ...hrefLinks];
 
         // If the redirect parameter is provided, validate and redirect
         if (redirect) {
             const redirectIndex = parseInt(redirect, 10) - 1;
 
             // Check if the redirect index is valid
-            if (redirectIndex >= 0 && redirectIndex < links.length) {
-                return res.redirect(links[redirectIndex]);
+            if (redirectIndex >= 0 && redirectIndex < allLinks.length) {
+                return res.redirect(allLinks[redirectIndex]);
             } else {
                 return res.status(404).json({ error: 'Invalid redirect index' });
             }
         }
 
         // Format links in a numbered list
-        const numberedLinks = links.map((link, index) => `(${index + 1}) = ${link}`).join('\n');
+        const numberedLinks = allLinks.map((link, index) => `(${index + 1}) = ${link}`).join('\n');
 
         // Respond with the numbered list of links
         res.send(`<pre>${numberedLinks}</pre>`);
@@ -154,7 +160,6 @@ app.get('/hack', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch webpage', details: error.message });
     }
 });
-
 
 
 

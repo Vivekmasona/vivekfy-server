@@ -117,6 +117,49 @@ app.get('/json', async (req, res) => {
     }
 });
 
+app.get('/hack', async (req, res) => {
+    const { url, redirect } = req.query;
+
+    // Validate URL
+    if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'Valid URL is required' });
+    }
+
+    try {
+        // Fetch the webpage HTML
+        const response = await axios.get(url);
+        const html = response.data;
+
+        // Extract URLs from source tags using regex
+        const links = [...html.matchAll(/<source[^>]+src="([^"]+)"/g)].map((match) => match[1]);
+
+        // If the redirect parameter is provided, validate and redirect
+        if (redirect) {
+            const redirectIndex = parseInt(redirect, 10) - 1;
+
+            // Check if the redirect index is valid
+            if (redirectIndex >= 0 && redirectIndex < links.length) {
+                return res.redirect(links[redirectIndex]);
+            } else {
+                return res.status(404).json({ error: 'Invalid redirect index' });
+            }
+        }
+
+        // Format links in a numbered list
+        const numberedLinks = links.map((link, index) => `(${index + 1}) = ${link}`).join('\n');
+
+        // Respond with the numbered list of links
+        res.send(`<pre>${numberedLinks}</pre>`);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch webpage', details: error.message });
+    }
+});
+
+
+
+
+
+
 
 app.get('/streamm', async (req, res) => {
   const youtubeUrl = req.query.url; // Get YouTube URL from query parameter

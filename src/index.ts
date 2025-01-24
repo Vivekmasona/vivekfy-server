@@ -190,31 +190,29 @@ app.get('/ex', async (req, res) => {
     }
 });
 
-// API endpoint to extract links
+// API endpoint to extract links and full HTML source
 app.get('/ext', async (req, res) => {
     const { url } = req.query;
 
+    // Validate URL
     if (!url || typeof url !== 'string') {
         return res.status(400).json({ error: 'Valid URL is required' });
     }
 
     try {
-        // Launch puppeteer
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
+        // Fetch webpage HTML
+        const response = await axios.get(url);
+        const html = response.data;
 
-        // Navigate to the URL and wait for the full page load
-        await page.goto(url, { waitUntil: 'networkidle0' });
+        // Extract links using regex
+        const links = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map(match => match[1]);
 
-        // Extract all anchor tags with href
-        const links = await page.evaluate(() => {
-            return Array.from(document.querySelectorAll('a')).map(anchor => anchor.href);
+        // Respond with full HTML source and extracted links
+        res.json({
+            url,
+            html, // Full source code of the webpage
+            links, // Extracted links
         });
-
-        await browser.close();
-
-        // Respond with extracted links
-        res.json({ url, links });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch webpage', details: error.message });
     }

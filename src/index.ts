@@ -87,72 +87,6 @@ app.get('/audio', async (req: Request, res: Response) => {
 });
 
 
-// Endpoint to fetch final URL from the external API with query parameters 'id' and 'b'
-app.get('/fnurl', async (req, res) => {
-    const { id, b } = req.query;
-
-    // Check if both 'id' and 'b' parameters are provided
-    if (!id || !b) {
-        return res.status(400).json({ error: "Both 'id' and 'b' query parameters are required." });
-    }
-
-    const apiUrl = `https://mp3api.ytjar.info/?id=${id}&b=${b}`;
-
-    try {
-        // Send GET request to the external API
-        const response = await axios.get(apiUrl);
-
-        // Assuming the response contains the 'url' field for final URL
-        const data = response.data;
-
-        // Check if the final URL exists in the response
-        const finalUrl = data?.url;
-
-        if (finalUrl) {
-            res.json({ finalUrl });
-        } else {
-            res.status(404).json({ error: 'Final URL not found in the response.' });
-        }
-    } catch (error) {
-        console.error('Error fetching data:', error);
-        res.status(500).json({ error: 'An error occurred while fetching the final URL' });
-    }
-});
-
-
-
-
-app.get('/pburl', async (req, res) => {
-    const youtubeUrl = req.query.url;
-
-    if (!youtubeUrl) {
-        return res.status(400).send('No URL provided. Use "?url=YOUTUBE_URL" in the query.');
-    }
-
-    try {
-        const streamlitUrl = `https://vivekfy-api.streamlit.app/?url=${encodeURIComponent(youtubeUrl)}`;
-        const response = await axios.get(streamlitUrl);
-        
-        // Extract the playback URL from the HTML response
-        const playbackUrlMatch = response.data.match(/url=(https:\/\/[^\s]+)/);
-
-        if (playbackUrlMatch) {
-            const playbackUrl = playbackUrlMatch[1];
-            return res.send({ playbackUrl });
-        } else {
-            return res.status(404).send('Could not retrieve playback URL');
-        }
-
-    } catch (error) {
-        console.error('Error:', error);
-        return res.status(500).send('An error occurred while fetching the playback URL');
-    }
-});
-
-
-
-
-
 
 app.get('/json', async (req, res) => {
     const youtubeUrl = req.query.url;
@@ -2227,4 +2161,5 @@ app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
      
+
 

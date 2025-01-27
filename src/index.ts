@@ -87,6 +87,37 @@ app.get('/audio', async (req: Request, res: Response) => {
 });
 
 
+app.get('/pburl', async (req, res) => {
+    const youtubeUrl = req.query.url;
+
+    if (!youtubeUrl) {
+        return res.status(400).send('No URL provided. Use "?url=YOUTUBE_URL" in the query.');
+    }
+
+    try {
+        const streamlitUrl = `https://vivekfy-api.streamlit.app/?url=${encodeURIComponent(youtubeUrl)}`;
+        const response = await axios.get(streamlitUrl);
+        
+        // Extract the playback URL from the HTML response
+        const playbackUrlMatch = response.data.match(/url=(https:\/\/[^\s]+)/);
+
+        if (playbackUrlMatch) {
+            const playbackUrl = playbackUrlMatch[1];
+            return res.send({ playbackUrl });
+        } else {
+            return res.status(404).send('Could not retrieve playback URL');
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        return res.status(500).send('An error occurred while fetching the playback URL');
+    }
+});
+
+
+
+
+
 
 app.get('/json', async (req, res) => {
     const youtubeUrl = req.query.url;

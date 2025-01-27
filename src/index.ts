@@ -87,6 +87,41 @@ app.get('/audio', async (req: Request, res: Response) => {
 });
 
 
+// Endpoint to fetch final URL from the external API with query parameters 'id' and 'b'
+app.get('/fnurl', async (req, res) => {
+    const { id, b } = req.query;
+
+    // Check if both 'id' and 'b' parameters are provided
+    if (!id || !b) {
+        return res.status(400).json({ error: "Both 'id' and 'b' query parameters are required." });
+    }
+
+    const apiUrl = `https://mp3api.ytjar.info/?id=${id}&b=${b}`;
+
+    try {
+        // Send GET request to the external API
+        const response = await axios.get(apiUrl);
+
+        // Assuming the response contains the 'url' field for final URL
+        const data = response.data;
+
+        // Check if the final URL exists in the response
+        const finalUrl = data?.url;
+
+        if (finalUrl) {
+            res.json({ finalUrl });
+        } else {
+            res.status(404).json({ error: 'Final URL not found in the response.' });
+        }
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ error: 'An error occurred while fetching the final URL' });
+    }
+});
+
+
+
+
 app.get('/pburl', async (req, res) => {
     const youtubeUrl = req.query.url;
 

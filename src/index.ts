@@ -2083,40 +2083,38 @@ app.get('/backend', async (req: Request, res: Response) => {
 
 
 
+// Middleware to parse JSON and URL-encoded data
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // In-memory storage for received data
 let receivedData = [];
 
-app.get('/received', async (req, res) => {
+// Endpoint to receive and store data
+app.get('/received', (req, res) => {
   try {
-    const url = req.query.url;
+    const data = req.query.data; // Use 'data' instead of 'url' for flexibility
 
-    if (!url) {
-      return res.status(400).json({ error: 'URL is required' });
+    if (!data) {
+      return res.status(400).json({ error: 'Data is required' });
     }
 
-    // Simulate processing or fetching data from the URL
-    const response = await axios.get(url);
+    // Save the data to the in-memory array
+    const result = { data };
+    receivedData.push(result); // Store the received data
 
-    if (!response.data) {
-      throw new Error('No data returned from the provided URL');
-    }
-
-    // Save the processed data
-    const result = { url: url, data: response.data };
-    receivedData.push(result); // Store the result in the in-memory array
-
-    res.json(result); // Return the result
+    res.json(result); // Return the saved data
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to process URL: ' + error.message });
+    res.status(500).json({ error: 'Failed to process data: ' + error.message });
   }
 });
 
-// Endpoint to view the stored data
+// Endpoint to view all stored data
 app.get('/print', (req, res) => {
-  res.json(receivedData); // Return the stored data
+  res.json(receivedData); // Return all stored data
 });
+
 
 
 

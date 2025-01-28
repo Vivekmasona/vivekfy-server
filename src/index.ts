@@ -2082,64 +2082,40 @@ app.get('/backend', async (req: Request, res: Response) => {
 
 
 
-app.get('/recived', async (req, res) => {
+
+
+// In-memory storage for received data
+let receivedData = [];
+
+app.get('/received', async (req, res) => {
   try {
     const url = req.query.url;
-    
+
     if (!url) {
       return res.status(400).json({ error: 'URL is required' });
     }
-    
+
     // Simulate processing or fetching data from the URL
-    const response = await axios.get(url); // This is an example; replace with real logic if needed
-    
+    const response = await axios.get(url);
+
     if (!response.data) {
       throw new Error('No data returned from the provided URL');
     }
-    
-    const result = { url: url }; // Process or return data as needed
+
+    // Save the processed data
+    const result = { url: url, data: response.data };
+    receivedData.push(result); // Store the result in the in-memory array
+
     res.json(result); // Return the result
-    
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to process URL: ' + error.message });
   }
 });
 
-let storedData = null; // Variable to store the last received JSON data
-
-app.get('/recive', async (req, res) => {
-  try {
-    const url = req.query.url;
-    
-    if (!url) {
-      return res.status(400).json({ error: 'URL is required' });
-    }
-    
-    // Fetch data from the provided URL
-    const response = await axios.get(url); // Example; adjust as needed
-    
-    if (!response.data) {
-      throw new Error('No data returned from the provided URL');
-    }
-    
-    const result = { url: url, data: response.data }; // Example result
-    storedData = result; // Store the received data
-    
-    res.json(result); // Return the result
-    
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to process URL: ' + error.message });
-  }
-});
-
-// Endpoint to display stored data with status 500
+// Endpoint to view the stored data
 app.get('/print', (req, res) => {
-  if (!storedData) {
-    return res.status(500).json({ message: 'No data available' });
-  }
-  res.status(500).json(storedData); // Return stored data with status 500
+  res.json(receivedData); // Return the stored data
 });
 
 

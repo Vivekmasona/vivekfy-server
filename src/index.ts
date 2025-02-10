@@ -321,6 +321,22 @@ app.get('/tts', async (req: Request, res: Response) => {
     }
 });
 
+app.get('/connect', async (req, res) => {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ error: 'URL is required' });
+
+    try {
+        const apiUrl = `https://thirsty-editha-vivekfy-6cef7b64.koyeb.app/json?url=${encodeURIComponent(url)}`;
+        const response = await axios.get(apiUrl);
+        const audioUrl = response.data.url; // JSON me 'url' key me audio link hai
+
+        if (!audioUrl) return res.status(404).json({ error: 'Audio URL not found' });
+
+        res.redirect(audioUrl); // Redirect to audio URL
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch data', details: error.message });
+    }
+});
 
 app.get('/json2', async (req, res) => {
     const youtubeUrl = req.query.url;

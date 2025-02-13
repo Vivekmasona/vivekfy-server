@@ -209,6 +209,51 @@ app.get('/streamm', async (req, res) => {
   }
 });
 
+app.get('/self', async (req, res) => {
+    const { url } = req.query;
+
+    // Validate URL
+    if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'Valid URL is required' });
+    }
+
+    try {
+        // Fetch webpage HTML
+        const response = await axios.get(url);
+        const html = response.data;
+        const $ = cheerio.load(html);
+
+        const results = [];
+
+        $("a.title-color").each((_, element) => {
+            const videoUrl = $(element).attr("href"); 
+            const idMatch = videoUrl.match(/watch\?v=([\w-]+)/);
+            const id = idMatch ? idMatch[1] : null;
+            
+            const title = $(element).find(".title-style").text().trim();
+            const thumbnail = $(element).find(".videosthumbs-style").attr("data-thumb");
+            const channelName = $(element).next(".viewsanduser").find(".by-user").text().trim();
+            const channelId = $(element).next(".viewsanduser").find(".by-user").attr("href")?.split("=")[1];
+            const channelPoster = `https://yt3.googleusercontent.com/ytc/${channelId}`;
+
+            if (id) {
+                results.push({
+                    id: `https://youtu.be/${id}`,
+                    title,
+                    thumbnail,
+                    channel_name: channelName,
+                    channel_id: channelId,
+                    channel_poster: channelPoster
+                });
+            }
+        });
+
+        res.json({ url, results });
+
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch webpage', details: error.message });
+    }
+});
 
 // API endpoint to extract links
 app.get('/ex', async (req, res) => {

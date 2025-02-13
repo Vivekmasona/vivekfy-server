@@ -209,20 +209,22 @@ app.get('/streamm', async (req, res) => {
   }
 });
 
-app.get('/self', async (req, res) => {
-    const { url } = req.query;
 
-    // Validate URL
-    if (!url || typeof url !== 'string') {
-        return res.status(400).json({ error: 'Valid URL is required' });
+app.get('/self', async (req, res) => {
+    const { vfy } = req.query;
+
+    if (!vfy) {
+        return res.status(400).json({ error: 'Query parameter ?vfy is required' });
     }
 
     try {
-        // Fetch webpage HTML
-        const response = await axios.get(url);
+        // Tumhare API se HTML fetch karna
+        const apiUrl = `https://vivekfy.vercel.app/ext?url=https://clipzag.com/search?q=${encodeURIComponent(vfy)}`;
+        const response = await axios.get(apiUrl);
         const html = response.data;
-        const $ = cheerio.load(html);
 
+        // HTML ko parse karna
+        const $ = cheerio.load(html);
         const results = [];
 
         $("a.title-color").each((_, element) => {
@@ -248,12 +250,14 @@ app.get('/self', async (req, res) => {
             }
         });
 
-        res.json({ url, results });
+        res.json({ query: vfy, results });
 
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch webpage', details: error.message });
+        res.status(500).json({ error: 'Failed to fetch data', details: error.message });
     }
 });
+
+
 
 // API endpoint to extract links
 app.get('/ex', async (req, res) => {

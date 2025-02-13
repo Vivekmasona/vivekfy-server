@@ -163,7 +163,37 @@ app.get('/hack', async (req, res) => {
 
 
 
+app.get('/self-api', async (req, res) => {
+    const { q } = req.query;
 
+    if (!q || typeof q !== 'string') {
+        return res.status(400).json({ error: 'Query parameter ?q is required' });
+    }
+
+    try {
+        // Clipzag se direct search query ka HTML fetch karna
+        const url = `https://clipzag.com/search?q=${encodeURIComponent(q)}`;
+        const response = await axios.get(url);
+        const html = response.data;
+
+        // Regex se YouTube video data extract karna
+        const matches = [...html.matchAll(/<a class='title-color' href='watch\?v=([^']+)'>[\s\S]*?<img .*?data-thumb='([^']+)'.*?>[\s\S]*?<div class='title-style' title='([^']+)'>(.*?)<\/div>[\s\S]*?<a class='by-user' href='\/channel\?id=([^']+)'>(.*?)<\/a>/g)];
+
+        const results = matches.map(match => ({
+            id: `https://youtu.be/${match[1]}`,
+            title: match[3].trim(),
+            thumbnail: `https:${match[2]}`,
+            channel_name: match[5].trim(),
+            channel_id: match[4],
+            channel_poster: `https://yt3.googleusercontent.com/ytc/${match[4]}`
+        }));
+
+        res.json({ query: q, results });
+
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch data', details: error.message });
+    }
+});
 
 
 app.get('/streamm', async (req, res) => {

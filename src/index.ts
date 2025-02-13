@@ -446,7 +446,7 @@ app.get('/search', async (req: Request, res: Response) => {
 
   try {
     // Fetch search results from Invidious API
-    const searchResponse = await axios.get(`https://invidious.jing.rocks/api/v1/search`, {
+    const searchResponse = await axios.get(`https://inv.nadeko.net/api/v1/search`, {
       params: { q: query }
     });
     res.json(searchResponse.data);

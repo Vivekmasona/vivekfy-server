@@ -210,21 +210,21 @@ app.get('/streamm', async (req, res) => {
 });
 
 
-app.get('/self', async (req, res) => {
-    const { vfy } = req.query;
 
-    if (!vfy) {
-        return res.status(400).json({ error: 'Query parameter ?vfy is required' });
+app.get('/self', async (req, res) => {
+    const { url } = req.query;
+
+    if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'Valid URL is required' });
     }
 
     try {
-        // Vivekfy API se data fetch karna
-        const apiUrl = `https://vivekfy.vercel.app/ext?url=https://clipzag.com/search?q=${encodeURIComponent(vfy)}`;
-        const response = await axios.get(apiUrl);
-        const data = response.data; // API se raw HTML ya JSON mil raha hoga
+        // Webpage HTML fetch karna
+        const response = await axios.get(url);
+        const html = response.data;
 
         // Regex se required data extract karna
-        const matches = [...data.matchAll(/<a class='title-color' href='watch\?v=([^']+)'>[\s\S]*?<img .*?data-thumb='([^']+)'.*?>[\s\S]*?<div class='title-style' title='([^']+)'>(.*?)<\/div>[\s\S]*?<a class='by-user' href='\/channel\?id=([^']+)'>(.*?)<\/a>/g)];
+        const matches = [...html.matchAll(/<a class='title-color' href='watch\?v=([^']+)'>[\s\S]*?<img .*?data-thumb='([^']+)'.*?>[\s\S]*?<div class='title-style' title='([^']+)'>(.*?)<\/div>[\s\S]*?<a class='by-user' href='\/channel\?id=([^']+)'>(.*?)<\/a>/g)];
 
         const results = matches.map(match => ({
             id: `https://youtu.be/${match[1]}`,
@@ -235,13 +235,12 @@ app.get('/self', async (req, res) => {
             channel_poster: `https://yt3.googleusercontent.com/ytc/${match[4]}`
         }));
 
-        res.json({ query: vfy, results });
+        res.json({ url, results });
 
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch data', details: error.message });
+        res.status(500).json({ error: 'Failed to fetch webpage', details: error.message });
     }
 });
-
 
 
 

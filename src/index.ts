@@ -218,37 +218,22 @@ app.get('/self', async (req, res) => {
     }
 
     try {
-        // Tumhare API se HTML fetch karna
+        // Vivekfy API se data fetch karna
         const apiUrl = `https://vivekfy.vercel.app/ext?url=https://clipzag.com/search?q=${encodeURIComponent(vfy)}`;
         const response = await axios.get(apiUrl);
-        const html = response.data;
+        const data = response.data; // API se raw HTML ya JSON mil raha hoga
 
-        // HTML ko parse karna
-        const $ = cheerio.load(html);
-        const results = [];
+        // Regex se required data extract karna
+        const matches = [...data.matchAll(/<a class='title-color' href='watch\?v=([^']+)'>[\s\S]*?<img .*?data-thumb='([^']+)'.*?>[\s\S]*?<div class='title-style' title='([^']+)'>(.*?)<\/div>[\s\S]*?<a class='by-user' href='\/channel\?id=([^']+)'>(.*?)<\/a>/g)];
 
-        $("a.title-color").each((_, element) => {
-            const videoUrl = $(element).attr("href"); 
-            const idMatch = videoUrl.match(/watch\?v=([\w-]+)/);
-            const id = idMatch ? idMatch[1] : null;
-            
-            const title = $(element).find(".title-style").text().trim();
-            const thumbnail = $(element).find(".videosthumbs-style").attr("data-thumb");
-            const channelName = $(element).next(".viewsanduser").find(".by-user").text().trim();
-            const channelId = $(element).next(".viewsanduser").find(".by-user").attr("href")?.split("=")[1];
-            const channelPoster = `https://yt3.googleusercontent.com/ytc/${channelId}`;
-
-            if (id) {
-                results.push({
-                    id: `https://youtu.be/${id}`,
-                    title,
-                    thumbnail,
-                    channel_name: channelName,
-                    channel_id: channelId,
-                    channel_poster: channelPoster
-                });
-            }
-        });
+        const results = matches.map(match => ({
+            id: `https://youtu.be/${match[1]}`,
+            title: match[3].trim(),
+            thumbnail: `https:${match[2]}`,
+            channel_name: match[5].trim(),
+            channel_id: match[4],
+            channel_poster: `https://yt3.googleusercontent.com/ytc/${match[4]}`
+        }));
 
         res.json({ query: vfy, results });
 
@@ -256,6 +241,7 @@ app.get('/self', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch data', details: error.message });
     }
 });
+
 
 
 

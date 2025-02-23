@@ -1601,8 +1601,7 @@ app.get('/ocean', async (req, res) => {
 
   
 
-  
-// List of backend API base URLs
+  // List of backend API base URLs
 const apiBaseUrls = [
   'https://inv-eu2-c.nadeko.net/latest_version?',
   'https://inv-us2-c.nadeko.net/latest_version?',
@@ -1612,14 +1611,14 @@ const apiBaseUrls = [
 
 let requestCount = 0;
 
-// Function to get the next API base URL in rotation
+// Rotate through backend APIs
 const getNextApiBaseUrl = () => {
   const url = apiBaseUrls[requestCount % apiBaseUrls.length];
   requestCount++;
   return url;
 };
 
-// Function to extract YouTube video ID from any URL format
+// Extract Video ID from any YouTube URL or direct ID
 const extractVideoId = (input) => {
   const patterns = [
     /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
@@ -1637,43 +1636,35 @@ const extractVideoId = (input) => {
   return null;
 };
 
-// Main route to handle requests
-app.get('/play', async (req, res) => {
+// Main Route
+app.get('/api/play', async (req, res) => {
   const ytUrlOrId = req.query.url;
   if (!ytUrlOrId) {
     return res.status(400).send('YouTube URL or ID is required');
   }
 
-  // Extract video ID from any YouTube URL or direct ID
+  // Extract video ID
   const videoId = extractVideoId(ytUrlOrId);
   if (!videoId) {
     return res.status(400).send('Invalid YouTube URL or ID');
   }
 
-  // Build the query parameters
-  const params = new URLSearchParams({
-    id: videoId,
-    itag: '250',
-    local: 'true',
-    check: ''
-  });
-
-  // Get the next API base URL in rotation
-  const apiUrl = getNextApiBaseUrl() + params.toString();
+  // Get next API URL
+  const apiUrl = getNextApiBaseUrl() + `id=${videoId}&itag=250&local=true&check=`;
   console.log(`Requesting from: ${apiUrl}`);
 
   try {
-    // Send request to the chosen backend API
+    // Send request and follow redirect
     const response = await axios.get(apiUrl, {
       maxRedirects: 0,
       validateStatus: (status) => status >= 200 && status < 400
     });
 
-    // Check for redirect URL in the response headers
+    // Check for redirect URL
     const redirectUrl = response.headers.location;
     if (redirectUrl) {
       console.log(`Redirecting to: ${redirectUrl}`);
-      res.redirect(redirectUrl);
+      return res.redirect(redirectUrl);
     } else {
       res.status(500).send('Failed to get redirect URL');
     }
@@ -1682,7 +1673,11 @@ app.get('/play', async (req, res) => {
     res.status(500).send('Error processing request');
   }
 });
- 
+
+
+
+
+  
 
 
 

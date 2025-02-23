@@ -1597,7 +1597,12 @@ app.get('/ocean', async (req, res) => {
 
 
 
-  // List of backend API base URLs
+  
+
+  
+
+  
+// List of backend API base URLs
 const apiBaseUrls = [
   'https://inv-eu2-c.nadeko.net/latest_version?',
   'https://inv-us2-c.nadeko.net/latest_version?',
@@ -1615,7 +1620,7 @@ const getNextApiBaseUrl = () => {
 };
 
 // Function to extract YouTube video ID from any URL format
-const extractVideoId = (input: string): string | null => {
+const extractVideoId = (input) => {
   const patterns = [
     /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
     /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]+)/,
@@ -1632,8 +1637,9 @@ const extractVideoId = (input: string): string | null => {
   return null;
 };
 
-app.get('/play', async (req: Request, res: Response) => {
-  const ytUrlOrId = req.query.url as string;
+// Main route to handle requests
+app.get('/play', async (req, res) => {
+  const ytUrlOrId = req.query.url;
   if (!ytUrlOrId) {
     return res.status(400).send('YouTube URL or ID is required');
   }
@@ -1654,6 +1660,7 @@ app.get('/play', async (req: Request, res: Response) => {
 
   // Get the next API base URL in rotation
   const apiUrl = getNextApiBaseUrl() + params.toString();
+  console.log(`Requesting from: ${apiUrl}`);
 
   try {
     // Send request to the chosen backend API
@@ -1665,13 +1672,13 @@ app.get('/play', async (req: Request, res: Response) => {
     // Check for redirect URL in the response headers
     const redirectUrl = response.headers.location;
     if (redirectUrl) {
-      // Redirect the user to the received URL
+      console.log(`Redirecting to: ${redirectUrl}`);
       res.redirect(redirectUrl);
     } else {
       res.status(500).send('Failed to get redirect URL');
     }
   } catch (error) {
-    console.error('Error handling request:', error.message);
+    console.error('Error:', error.message);
     res.status(500).send('Error processing request');
   }
 });

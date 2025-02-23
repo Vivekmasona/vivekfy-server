@@ -1600,7 +1600,8 @@ app.get('/ocean', async (req, res) => {
   
 
   
-// Base URL hidden to avoid easy detection
+
+// Base domain separated for security
 const baseDomain = 'nadeko.net';
 
 // List of backend API subdomains
@@ -1617,7 +1618,7 @@ let requestCount = 0;
 const getNextApiBaseUrl = () => {
   const subdomain = apiSubdomains[requestCount % apiSubdomains.length];
   requestCount++;
-  return `https://${subdomain}.${baseDomain}/latest_version?`;
+  return `https://${subdomain}.${baseDomain}/latest_version`;
 };
 
 // Route to redirect request
@@ -1628,7 +1629,7 @@ app.get('/api/media', (req, res) => {
     }
 
     // Construct the complete URL
-    const apiUrl = getNextApiBaseUrl() + `id=${id}&itag=250&check=`;
+    const apiUrl = `${getNextApiBaseUrl()}?id=${id}&itag=250&local=true&check=`;
 
     // Redirect to the constructed URL
     console.log('Redirecting to:', apiUrl);

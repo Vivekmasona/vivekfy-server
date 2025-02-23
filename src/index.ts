@@ -1596,6 +1596,39 @@ app.get('/ocean', async (req, res) => {
 });
 
 
+// Route to redirect to audio URL
+app.get('/play', async (req, res) => {
+    const { url } = req.query;
+    if (!url) {
+        return res.status(400).send('URL parameter is required.');
+    }
+
+    // Extract the YouTube video ID from the provided URL
+    const videoIdMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
+    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+    if (!videoId) {
+        return res.status(400).send('Invalid YouTube URL.');
+    }
+
+    try {
+        // Use the extracted video ID in the API URL
+        const apiUrl = `https://inv-cl2-c.nadeko.net:8443/api/manifest/dash/id/${videoId}?local=true&unique_res=1&check=`;
+        const response = await axios.get(apiUrl);
+        
+        // Extract audio URL from JSON data
+        const audioUrl = response.data.audio[0].url;
+        if (audioUrl) {
+            // Redirect to the extracted audio URL
+            res.redirect(audioUrl);
+        } else {
+            res.status(404).send('Audio URL not found.');
+        }
+    } catch (error) {
+        console.error('Error fetching audio URL:', error);
+        res.status(500).send('Error processing request.');
+    }
+});
 
 
 

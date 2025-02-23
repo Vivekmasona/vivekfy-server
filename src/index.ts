@@ -1629,7 +1629,7 @@ app.get('/api/media', (req, res) => {
     }
 
     // Manually build the full URL to avoid any encoding issues
-    const apiUrl = `${getNextApiBaseUrl()}?id=${encodeURIComponent(id)}&itag=250&local=true&check=`;
+    const apiUrl = `${getNextApiBaseUrl()}?id=${encodeURIComponent(id)}&itag=250&local=true&check`;
 
     // Log for debugging
     console.log('Redirecting to:', apiUrl);

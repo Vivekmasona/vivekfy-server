@@ -1596,11 +1596,11 @@ app.get('/ocean', async (req, res) => {
 });
 
 
-// Route to redirect to audio URL
-app.get('/play', async (req, res) => {
+// Route to get audio and video URLs
+app.get('/media', async (req, res) => {
     const { url } = req.query;
     if (!url) {
-        return res.status(400).send('URL parameter is required.');
+        return res.status(400).json({ error: 'URL parameter is required.' });
     }
 
     // Extract the YouTube video ID from the provided URL
@@ -1608,25 +1608,35 @@ app.get('/play', async (req, res) => {
     const videoId = videoIdMatch ? videoIdMatch[1] : null;
 
     if (!videoId) {
-        return res.status(400).send('Invalid YouTube URL.');
+        return res.status(400).json({ error: 'Invalid YouTube URL.' });
     }
 
     try {
         // Use the extracted video ID in the API URL
         const apiUrl = `https://inv-cl2-c.nadeko.net:8443/api/manifest/dash/id/${videoId}?local=true&unique_res=1&check=`;
         const response = await axios.get(apiUrl);
-        
-        // Extract audio URL from JSON data
-        const audioUrl = response.data.audio[0].url;
-        if (audioUrl) {
-            // Redirect to the extracted audio URL
-            res.redirect(audioUrl);
-        } else {
-            res.status(404).send('Audio URL not found.');
-        }
+        const jsonData = response.data;
+
+        // Extract and categorize audio and video URLs
+        const audioUrls = jsonData.audio.map(item => ({
+            quality: item.quality,
+            url: item.url
+        }));
+
+        const videoUrls = jsonData.video.map(item => ({
+            quality: item.quality,
+            url: item.url
+        }));
+
+        // Send the response with Vivek Masona as the developer
+        res.json({
+            developer: "Vivek Masona",
+            audio: audioUrls,
+            video: videoUrls
+        });
     } catch (error) {
-        console.error('Error fetching audio URL:', error);
-        res.status(500).send('Error processing request.');
+        console.error('Error fetching media URLs:', error);
+        res.status(500).json({ error: 'Error processing request.' });
     }
 });
 

@@ -1601,10 +1601,9 @@ app.get('/ocean', async (req, res) => {
 
   
 
-// Base domain separated for security
-const baseDomain = 'nadeko.net';
 
-// List of backend API subdomains
+ // Base domain and subdomains hidden for security
+const baseDomain = 'nadeko.net';
 const apiSubdomains = [
   'inv-eu2-c',
   'inv-us2-c',
@@ -1621,22 +1620,50 @@ const getNextApiBaseUrl = () => {
   return `https://${subdomain}.${baseDomain}/latest_version`;
 };
 
-// Route to redirect request
-app.get('/api/media', (req, res) => {
+// Route to stream video
+app.get('/api/media', async (req, res) => {
     const { id } = req.query;
     if (!id) {
         return res.status(400).send('Video ID parameter is required.');
     }
 
-    // Manually build the full URL to avoid any encoding issues
-    const apiUrl = `${getNextApiBaseUrl()}?id=${encodeURIComponent(id)}&check&itag=250`;
+    // Construct URL for fetching video info
+    const apiUrl = `${getNextApiBaseUrl()}?id=${encodeURIComponent(id)}&itag=250&local=true&check=`;
 
-    // Log for debugging
-    console.log('Redirecting to:', apiUrl);
+    try {
+        console.log('Fetching video URL from:', apiUrl);
 
-    // Redirect to the constructed URL
-    res.setHeader('Location', apiUrl);
-    res.status(302).end();
+        // Fetch video URL
+        const response = await axios.get(apiUrl, {
+            maxRedirects: 0, // Don't follow redirects
+            validateStatus: status => status >= 200 && status < 400 // Accept 3xx status codes
+        });
+
+        // Get the final redirect URL
+        const videoUrl = response.headers.location;
+
+        // Check if video URL is valid
+        if (!videoUrl) {
+            return res.status(404).send('Video URL not found.');
+        }
+
+        console.log('Streaming video from:', videoUrl);
+
+        // Stream the video through the Vercel server
+        const videoStream = await axios.get(videoUrl, {
+            responseType: 'stream'
+        });
+
+        // Set the correct headers for video streaming
+        res.setHeader('Content-Type', videoStream.headers['content-type']);
+        res.setHeader('Content-Length', videoStream.headers['content-length']);
+
+        // Pipe the video stream to the client
+        videoStream.data.pipe(res);
+    } catch (error) {
+        console.error('Error fetching or streaming video:', error.message);
+        res.status(500).send('Error processing request.');
+    }
 });
 
 

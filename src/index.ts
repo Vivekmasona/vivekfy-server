@@ -1614,8 +1614,18 @@ app.get('/media', async (req, res) => {
     try {
         // Use the extracted video ID in the API URL
         const apiUrl = `https://inv-cl2-c.nadeko.net:8443/api/manifest/dash/id/${videoId}?local=true&unique_res=1&check=`;
+        console.log('Fetching data from:', apiUrl);
+
         const response = await axios.get(apiUrl);
         const jsonData = response.data;
+
+        // Log the full JSON response for debugging
+        console.log('API Response:', JSON.stringify(jsonData, null, 2));
+
+        // Check if audio and video fields are present
+        if (!jsonData.audio || !jsonData.video) {
+            return res.status(404).json({ error: 'No audio or video data found.' });
+        }
 
         // Extract and categorize audio and video URLs
         const audioUrls = jsonData.audio.map(item => ({
@@ -1635,7 +1645,13 @@ app.get('/media', async (req, res) => {
             video: videoUrls
         });
     } catch (error) {
-        console.error('Error fetching media URLs:', error);
+        console.error('Error fetching media URLs:', error.message);
+
+        // If the error is due to the API request, log the full error response
+        if (error.response) {
+            console.error('API Error Response:', error.response.data);
+        }
+        
         res.status(500).json({ error: 'Error processing request.' });
     }
 });

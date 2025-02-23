@@ -1595,25 +1595,17 @@ app.get('/ocean', async (req, res) => {
     }
 });
 
-
-// Route to get audio and video URLs
+// Route to get all URLs by providing a YouTube video ID
 app.get('/media', async (req, res) => {
-    const { url } = req.query;
-    if (!url) {
-        return res.status(400).json({ error: 'URL parameter is required.' });
+    const { id } = req.query;
+    if (!id) {
+        return res.status(400).json({ error: 'Video ID parameter is required.' });
     }
 
-    // Extract the YouTube video ID from the provided URL
-    const videoIdMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
-    const videoId = videoIdMatch ? videoIdMatch[1] : null;
-
-    if (!videoId) {
-        return res.status(400).json({ error: 'Invalid YouTube URL.' });
-    }
+    // Construct the API URL using the provided video ID
+    const apiUrl = `https://inv-cl2-c.nadeko.net:8443/api/manifest/dash/id/${id}?local=true&unique_res=1&check=`;
 
     try {
-        // Use the extracted video ID in the API URL
-        const apiUrl = `https://inv-cl2-c.nadeko.net:8443/api/manifest/dash/id/${videoId}?local=true&unique_res=1&check=`;
         console.log('Fetching data from:', apiUrl);
 
         const response = await axios.get(apiUrl);
@@ -1622,40 +1614,39 @@ app.get('/media', async (req, res) => {
         // Log the full JSON response for debugging
         console.log('API Response:', JSON.stringify(jsonData, null, 2));
 
-        // Extract audio and video data
-        const audioUrls = [];
-        const videoUrls = [];
+        // Extract all URLs and number them sequentially
+        const allUrls = [];
+        let counter = 1;
 
-        // Function to extract URLs and IDs from the response
-        const extractUrls = (data, type) => {
-            data.forEach(item => {
-                if (item.BaseURL && item.id) {
-                    if (type === 'audio') {
-                        audioUrls.push({ id: item.id, url: item.BaseURL });
-                    } else if (type === 'video') {
-                        videoUrls.push({ id: item.id, url: item.BaseURL });
+        // Recursive function to find and collect all BaseURLs
+        const findUrls = (data) => {
+            if (typeof data === 'object') {
+                for (const key in data) {
+                    if (key === 'BaseURL' && typeof data[key] === 'string') {
+                        allUrls.push({ id: counter, url: data[key] });
+                        counter++;
+                    } else {
+                        findUrls(data[key]);
                     }
                 }
-            });
+            }
         };
 
-        // Check for audio and video data in the JSON
-        if (jsonData.audio) {
-            extractUrls(jsonData.audio, 'audio');
+        // Start searching for URLs in the JSON response
+        findUrls(jsonData);
+
+        // Check if any URLs were found
+        if (allUrls.length === 0) {
+            return res.status(404).json({ error: 'No URLs found in the JSON response.' });
         }
 
-        if (jsonData.video) {
-            extractUrls(jsonData.video, 'video');
-        }
-
-        // Return the response with developer name
+        // Return the response with developer name and numbered URLs
         res.json({
             developer: "Vivek Masona",
-            audio: audioUrls,
-            video: videoUrls
+            urls: allUrls
         });
     } catch (error) {
-        console.error('Error fetching media URLs:', error.message);
+        console.error('Error fetching data:', error.message);
 
         // If the error is due to the API request, log the full error response
         if (error.response) {

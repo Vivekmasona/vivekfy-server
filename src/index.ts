@@ -1622,23 +1622,33 @@ app.get('/media', async (req, res) => {
         // Log the full JSON response for debugging
         console.log('API Response:', JSON.stringify(jsonData, null, 2));
 
-        // Check if audio and video fields are present
-        if (!jsonData.audio || !jsonData.video) {
-            return res.status(404).json({ error: 'No audio or video data found.' });
+        // Extract audio and video data
+        const audioUrls = [];
+        const videoUrls = [];
+
+        // Function to extract URLs and IDs from the response
+        const extractUrls = (data, type) => {
+            data.forEach(item => {
+                if (item.BaseURL && item.id) {
+                    if (type === 'audio') {
+                        audioUrls.push({ id: item.id, url: item.BaseURL });
+                    } else if (type === 'video') {
+                        videoUrls.push({ id: item.id, url: item.BaseURL });
+                    }
+                }
+            });
+        };
+
+        // Check for audio and video data in the JSON
+        if (jsonData.audio) {
+            extractUrls(jsonData.audio, 'audio');
         }
 
-        // Extract and categorize audio and video URLs
-        const audioUrls = jsonData.audio.map(item => ({
-            quality: item.quality,
-            url: item.url
-        }));
+        if (jsonData.video) {
+            extractUrls(jsonData.video, 'video');
+        }
 
-        const videoUrls = jsonData.video.map(item => ({
-            quality: item.quality,
-            url: item.url
-        }));
-
-        // Send the response with Vivek Masona as the developer
+        // Return the response with developer name
         res.json({
             developer: "Vivek Masona",
             audio: audioUrls,

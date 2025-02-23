@@ -1595,7 +1595,9 @@ app.get('/ocean', async (req, res) => {
     }
 });
 
-// Route to get all URLs by providing a YouTube video ID
+
+
+  // Route to get all URLs by providing a YouTube video ID
 app.get('/media', async (req, res) => {
     const { id } = req.query;
     if (!id) {
@@ -1603,7 +1605,7 @@ app.get('/media', async (req, res) => {
     }
 
     // Construct the API URL using the provided video ID
-    const apiUrl = `https://inv-cl2-c.nadeko.net:8443/api/manifest/dash/id/${id}?local=true&unique_res=1&check=`;
+    const apiUrl = `https://vivekfy.vercel.app/ext?url=https://inv.nadeko.net/watch?v=${id}&listen=1`;
 
     try {
         console.log('Fetching data from:', apiUrl);
@@ -1656,7 +1658,7 @@ app.get('/media', async (req, res) => {
         res.status(500).json({ error: 'Error processing request.' });
     }
 });
-
+      
 
 
 

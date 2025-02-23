@@ -1600,8 +1600,7 @@ app.get('/ocean', async (req, res) => {
   
 
   
-
-  // List of backend API base URLs
+// List of backend API base URLs
 const apiBaseUrls = [
   'https://inv-eu2-c.nadeko.net/latest_version?',
   'https://inv-us2-c.nadeko.net/latest_version?',
@@ -1618,63 +1617,69 @@ const getNextApiBaseUrl = () => {
   return url;
 };
 
-// Extract Video ID from any YouTube URL or direct ID
-const extractVideoId = (input) => {
-  const patterns = [
-    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
-    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]+)/,
-    /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([a-zA-Z0-9_-]+)/,
-    /^([a-zA-Z0-9_-]{11})$/ // Direct Video ID
-  ];
-
-  for (const pattern of patterns) {
-    const match = input.match(pattern);
-    if (match && match[1]) {
-      return match[1];
+// Route to get all URLs by providing a YouTube video ID
+app.get('/api/media', async (req, res) => {
+    const { id } = req.query;
+    if (!id) {
+        return res.status(400).json({ error: 'Video ID parameter is required.' });
     }
-  }
-  return null;
-};
 
-// Main Route
-app.get('/api/play', async (req, res) => {
-  const ytUrlOrId = req.query.url;
-  if (!ytUrlOrId) {
-    return res.status(400).send('YouTube URL or ID is required');
-  }
+    // Construct the API URL using the current base URL and provided video ID
+    const apiUrl = getNextApiBaseUrl() + `id=${id}&itag=250&local=true&check=`;
 
-  // Extract video ID
-  const videoId = extractVideoId(ytUrlOrId);
-  if (!videoId) {
-    return res.status(400).send('Invalid YouTube URL or ID');
-  }
+    try {
+        console.log('Fetching data from:', apiUrl);
 
-  // Get next API URL
-  const apiUrl = getNextApiBaseUrl() + `id=${videoId}&itag=250&local=true&check=`;
-  console.log(`Requesting from: ${apiUrl}`);
+        const response = await axios.get(apiUrl);
+        const jsonData = response.data;
 
-  try {
-    // Send request and follow redirect
-    const response = await axios.get(apiUrl, {
-      maxRedirects: 0,
-      validateStatus: (status) => status >= 200 && status < 400
-    });
+        // Log the full JSON response for debugging
+        console.log('API Response:', JSON.stringify(jsonData, null, 2));
 
-    // Check for redirect URL
-    const redirectUrl = response.headers.location;
-    if (redirectUrl) {
-      console.log(`Redirecting to: ${redirectUrl}`);
-      return res.redirect(redirectUrl);
-    } else {
-      res.status(500).send('Failed to get redirect URL');
+        // Extract all URLs and number them sequentially
+        const allUrls = [];
+        let counter = 1;
+
+        // Recursive function to find and collect all BaseURLs
+        const findUrls = (data) => {
+            if (typeof data === 'object') {
+                for (const key in data) {
+                    if (key === 'BaseURL' && typeof data[key] === 'string') {
+                        allUrls.push({ id: counter, url: data[key] });
+                        counter++;
+                    } else {
+                        findUrls(data[key]);
+                    }
+                }
+            }
+        };
+
+        // Start searching for URLs in the JSON response
+        findUrls(jsonData);
+
+        // Check if any URLs were found
+        if (allUrls.length === 0) {
+            return res.status(404).json({ error: 'No URLs found in the JSON response.' });
+        }
+
+        // Return the response with developer name and numbered URLs
+        res.json({
+            developer: "Vivek Masona",
+            urls: allUrls
+        });
+    } catch (error) {
+        console.error('Error fetching data:', error.message);
+
+        // If the error is due to the API request, log the full error response
+        if (error.response) {
+            console.error('API Error Response:', error.response.data);
+        }
+        
+        res.status(500).json({ error: 'Error processing request.' });
     }
-  } catch (error) {
-    console.error('Error:', error.message);
-    res.status(500).send('Error processing request');
-  }
 });
 
-
+  
 
 
   

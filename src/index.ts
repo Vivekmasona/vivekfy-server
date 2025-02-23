@@ -1601,8 +1601,7 @@ app.get('/ocean', async (req, res) => {
 
   
 
-
- // Base domain and subdomains hidden for security
+// Base domain and subdomains
 const baseDomain = 'nadeko.net';
 const apiSubdomains = [
   'inv-eu2-c',
@@ -1613,7 +1612,7 @@ const apiSubdomains = [
 
 let requestCount = 0;
 
-// Rotate through backend subdomains
+// Rotate through subdomains for each request
 const getNextApiBaseUrl = () => {
   const subdomain = apiSubdomains[requestCount % apiSubdomains.length];
   requestCount++;
@@ -1624,39 +1623,42 @@ const getNextApiBaseUrl = () => {
 app.get('/api/media', async (req, res) => {
     const { id } = req.query;
     if (!id) {
-        return res.status(400).send('Video ID parameter is required.');
+        return res.redirect('https://www.youtube.com');
     }
 
-    // Construct URL for fetching video info
-    const apiUrl = `${getNextApiBaseUrl()}?id=${encodeURIComponent(id)}&itag=250&local=true&check=`;
+    // Construct the first API URL
+    let apiUrl = `${getNextApiBaseUrl()}?id=${encodeURIComponent(id)}&itag=250&local=true&check=`;
 
-    try {
-        console.log('Fetching video URL from:', apiUrl);
+    // Try up to 4 times (one for each API)
+    for (let i = 0; i < apiSubdomains.length; i++) {
+        try {
+            console.log('Trying URL:', apiUrl);
 
-        // Fetch the final redirect URL
-        const response = await axios.get(apiUrl, {
-            maxRedirects: 0, // Don't follow redirects
-            validateStatus: status => status >= 200 && status < 400 // Accept 3xx status codes
-        });
+            // Fetch the final redirect URL
+            const response = await axios.get(apiUrl, {
+                maxRedirects: 0, // Don't follow redirects
+                validateStatus: status => status >= 200 && status < 400 // Accept 3xx status codes
+            });
 
-        // Get the final redirect URL
-        const videoUrl = response.headers.location;
+            const videoUrl = response.headers.location;
 
-        // Check if video URL is valid
-        if (!videoUrl) {
-            return res.status(404).send('Video URL not found.');
+            // If a video URL is found, redirect the user
+            if (videoUrl) {
+                console.log('Redirecting to:', videoUrl);
+                return res.redirect(videoUrl);
+            }
+        } catch (error) {
+            console.error('Error with URL:', apiUrl);
+
+            // Rotate to the next API and try again
+            apiUrl = `${getNextApiBaseUrl()}?id=${encodeURIComponent(id)}&itag=250&local=true&check=`;
         }
-
-        console.log('Redirecting to:', videoUrl);
-
-        // Redirect the user to the final video URL
-        return res.redirect(videoUrl);
-    } catch (error) {
-        console.error('Error fetching video URL:', error.message);
-        res.status(500).send('Error processing request.');
     }
-});
 
+    // If all attempts fail, redirect to YouTube
+    res.redirect('https://www.youtube.com');
+});
+ 
 
   
 

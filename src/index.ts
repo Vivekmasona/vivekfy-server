@@ -1620,7 +1620,7 @@ const getNextApiBaseUrl = () => {
   return `https://${subdomain}.${baseDomain}/latest_version`;
 };
 
-// Route to stream video
+// Route to get the final video URL and redirect
 app.get('/api/media', async (req, res) => {
     const { id } = req.query;
     if (!id) {
@@ -1633,7 +1633,7 @@ app.get('/api/media', async (req, res) => {
     try {
         console.log('Fetching video URL from:', apiUrl);
 
-        // Fetch video URL
+        // Fetch the final redirect URL
         const response = await axios.get(apiUrl, {
             maxRedirects: 0, // Don't follow redirects
             validateStatus: status => status >= 200 && status < 400 // Accept 3xx status codes
@@ -1647,27 +1647,15 @@ app.get('/api/media', async (req, res) => {
             return res.status(404).send('Video URL not found.');
         }
 
-        console.log('Streaming video from:', videoUrl);
+        console.log('Redirecting to:', videoUrl);
 
-        // Stream the video through the Vercel server
-        const videoStream = await axios.get(videoUrl, {
-            responseType: 'stream'
-        });
-
-        // Set the correct headers for video streaming
-        res.setHeader('Content-Type', videoStream.headers['content-type']);
-        res.setHeader('Content-Length', videoStream.headers['content-length']);
-
-        // Pipe the video stream to the client
-        videoStream.data.pipe(res);
+        // Redirect the user to the final video URL
+        return res.redirect(videoUrl);
     } catch (error) {
-        console.error('Error fetching or streaming video:', error.message);
+        console.error('Error fetching video URL:', error.message);
         res.status(500).send('Error processing request.');
     }
 });
-
-
-  
 
 
   

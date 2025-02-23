@@ -1597,68 +1597,57 @@ app.get('/ocean', async (req, res) => {
 
 
 
-  // Route to get all URLs by providing a YouTube video ID
-app.get('/media', async (req, res) => {
-    const { id } = req.query;
-    if (!id) {
-        return res.status(400).json({ error: 'Video ID parameter is required.' });
-    }
+   // List of backend API base URLs
+const apiBaseUrls = [
+  'https://inv-eu2-c.nadeko.net/latest_version?',
+  'https://inv-us2-c.nadeko.net/latest_version?',
+  'https://inv-cl2-c.nadeko.net:8443/latest_version?',
+  'https://inv-ca1-c.nadeko.net/latest_version?'
+];
 
-    // Construct the API URL using the provided video ID
-    const apiUrl = `https://vivekfy.vercel.app/ext?url=https://inv.nadeko.net/watch?v=${id}&listen=1`;
+let requestCount = 0;
 
-    try {
-        console.log('Fetching data from:', apiUrl);
+// Function to get the next API base URL in rotation
+const getNextApiBaseUrl = () => {
+  const url = apiBaseUrls[requestCount % apiBaseUrls.length];
+  requestCount++;
+  return url;
+};
 
-        const response = await axios.get(apiUrl);
-        const jsonData = response.data;
+app.get('/play', async (req: Request, res: Response) => {
+  const ytUrl = req.query.url as string;
+  if (!ytUrl) {
+    return res.status(400).send('YouTube URL is required');
+  }
 
-        // Log the full JSON response for debugging
-        console.log('API Response:', JSON.stringify(jsonData, null, 2));
+  // Extract the YouTube video ID
+  const videoId = ytUrl.split('v=')[1] || ytUrl.split('/').pop();
+  if (!videoId) {
+    return res.status(400).send('Invalid YouTube URL');
+  }
 
-        // Extract all URLs and number them sequentially
-        const allUrls = [];
-        let counter = 1;
+  // Build the query parameters
+  const params = new URLSearchParams({
+    id: videoId,
+    itag: '250',
+    local: 'true',
+    check: ''
+  });
 
-        // Recursive function to find and collect all BaseURLs
-        const findUrls = (data) => {
-            if (typeof data === 'object') {
-                for (const key in data) {
-                    if (key === 'BaseURL' && typeof data[key] === 'string') {
-                        allUrls.push({ id: counter, url: data[key] });
-                        counter++;
-                    } else {
-                        findUrls(data[key]);
-                    }
-                }
-            }
-        };
+  // Get the next API base URL in rotation
+  const apiUrl = getNextApiBaseUrl() + params.toString();
 
-        // Start searching for URLs in the JSON response
-        findUrls(jsonData);
-
-        // Check if any URLs were found
-        if (allUrls.length === 0) {
-            return res.status(404).json({ error: 'No URLs found in the JSON response.' });
-        }
-
-        // Return the response with developer name and numbered URLs
-        res.json({
-            developer: "Vivek Masona",
-            urls: allUrls
-        });
-    } catch (error) {
-        console.error('Error fetching data:', error.message);
-
-        // If the error is due to the API request, log the full error response
-        if (error.response) {
-            console.error('API Error Response:', error.response.data);
-        }
-        
-        res.status(500).json({ error: 'Error processing request.' });
-    }
+  try {
+    // Stream the audio directly
+    const response = await axios.get(apiUrl, { responseType: 'stream' });
+    res.setHeader('Content-Type', response.headers['content-type']);
+    response.data.pipe(res);
+  } catch (error) {
+    console.error('Error streaming audio:', error.message);
+    res.status(500).send('Error streaming audio');
+  }
 });
-      
+
 
 
 

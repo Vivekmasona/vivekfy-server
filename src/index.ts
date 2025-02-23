@@ -1597,7 +1597,7 @@ app.get('/ocean', async (req, res) => {
 
 
 
-   // List of backend API base URLs
+  // List of backend API base URLs
 const apiBaseUrls = [
   'https://inv-eu2-c.nadeko.net/latest_version?',
   'https://inv-us2-c.nadeko.net/latest_version?',
@@ -1614,16 +1614,34 @@ const getNextApiBaseUrl = () => {
   return url;
 };
 
+// Function to extract YouTube video ID from any URL format
+const extractVideoId = (input: string): string | null => {
+  const patterns = [
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]+)/,
+    /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([a-zA-Z0-9_-]+)/,
+    /^([a-zA-Z0-9_-]{11})$/ // Direct Video ID
+  ];
+
+  for (const pattern of patterns) {
+    const match = input.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  return null;
+};
+
 app.get('/play', async (req: Request, res: Response) => {
-  const ytUrl = req.query.url as string;
-  if (!ytUrl) {
-    return res.status(400).send('YouTube URL is required');
+  const ytUrlOrId = req.query.url as string;
+  if (!ytUrlOrId) {
+    return res.status(400).send('YouTube URL or ID is required');
   }
 
-  // Extract the YouTube video ID
-  const videoId = ytUrl.split('v=')[1] || ytUrl.split('/').pop();
+  // Extract video ID from any YouTube URL or direct ID
+  const videoId = extractVideoId(ytUrlOrId);
   if (!videoId) {
-    return res.status(400).send('Invalid YouTube URL');
+    return res.status(400).send('Invalid YouTube URL or ID');
   }
 
   // Build the query parameters
@@ -1638,15 +1656,26 @@ app.get('/play', async (req: Request, res: Response) => {
   const apiUrl = getNextApiBaseUrl() + params.toString();
 
   try {
-    // Stream the audio directly
-    const response = await axios.get(apiUrl, { responseType: 'stream' });
-    res.setHeader('Content-Type', response.headers['content-type']);
-    response.data.pipe(res);
+    // Send request to the chosen backend API
+    const response = await axios.get(apiUrl, {
+      maxRedirects: 0,
+      validateStatus: (status) => status >= 200 && status < 400
+    });
+
+    // Check for redirect URL in the response headers
+    const redirectUrl = response.headers.location;
+    if (redirectUrl) {
+      // Redirect the user to the received URL
+      res.redirect(redirectUrl);
+    } else {
+      res.status(500).send('Failed to get redirect URL');
+    }
   } catch (error) {
-    console.error('Error streaming audio:', error.message);
-    res.status(500).send('Error streaming audio');
+    console.error('Error handling request:', error.message);
+    res.status(500).send('Error processing request');
   }
 });
+ 
 
 
 

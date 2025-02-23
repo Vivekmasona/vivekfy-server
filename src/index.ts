@@ -1628,13 +1628,17 @@ app.get('/api/media', (req, res) => {
         return res.status(400).send('Video ID parameter is required.');
     }
 
-    // Construct the complete URL
-    const apiUrl = `${getNextApiBaseUrl()}?id=${id}&itag=250&check=&local=true`;
+    // Manually build the full URL to avoid any encoding issues
+    const apiUrl = `${getNextApiBaseUrl()}?id=${encodeURIComponent(id)}&itag=250&local=true&check=`;
+
+    // Log for debugging
+    console.log('Redirecting to:', apiUrl);
 
     // Redirect to the constructed URL
-    console.log('Redirecting to:', apiUrl);
-    res.redirect(apiUrl);
+    res.setHeader('Location', apiUrl);
+    res.status(302).end();
 });
+
 
   
 

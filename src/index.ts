@@ -1629,7 +1629,7 @@ app.get('/api/media', (req, res) => {
     }
 
     // Construct the complete URL
-    const apiUrl = `${getNextApiBaseUrl()}?id=${id}&itag=250&local=true&check=`;
+    const apiUrl = `${getNextApiBaseUrl()}?id=${id}&itag=250&check=&local=true`;
 
     // Redirect to the constructed URL
     console.log('Redirecting to:', apiUrl);

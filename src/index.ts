@@ -1600,13 +1600,12 @@ app.get('/ocean', async (req, res) => {
   
 
   
-
 // Base domain and subdomains
 const baseDomain = 'nadeko.net';
 const apiSubdomains = [
   'inv-eu2-c',
   'inv-us2-c',
-  'inv-cl2-c:8443',
+  'inv-cl2-c:8443', // Explicitly keep the port here
   'inv-ca1-c'
 ];
 
@@ -1616,11 +1615,18 @@ let requestCount = 0;
 const getNextApiBaseUrl = () => {
   const subdomain = apiSubdomains[requestCount % apiSubdomains.length];
   requestCount++;
+
+  // Special case for the :8443 subdomain
+  if (subdomain.includes(':8443')) {
+    return `https://${subdomain.split(':')[0]}.${baseDomain}:8443/latest_version`;
+  }
+
+  // Default case for other subdomains
   return `https://${subdomain}.${baseDomain}/latest_version`;
 };
 
 // Route to get the final video URL and redirect
-app.get('/api/media', async (req, res) => {
+app.get('/vfy', async (req, res) => {
     const { id } = req.query;
     if (!id) {
         return res.redirect('https://www.youtube.com');
@@ -1658,7 +1664,8 @@ app.get('/api/media', async (req, res) => {
     // If all attempts fail, redirect to YouTube
     res.redirect('https://www.youtube.com');
 });
- 
+
+    
 
   
 

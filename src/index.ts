@@ -89,7 +89,52 @@ app.get('/audio', async (req: Request, res: Response) => {
 
 
 
+app.get('/mp3', async (req, res) => {
+    const { url, redirect } = req.query;
 
+    // Validate URL
+    if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'Valid URL is required' });
+    }
+
+    // Polling function to repeatedly fetch the URL until 'videoplayback' is found
+    const fetchUntilPlayback = async () => {
+        try {
+            // Fetch the webpage HTML
+            const response = await axios.get(url);
+            const html = response.data;
+
+            // Extract URLs from <source> tags
+            const sourceLinks = [...html.matchAll(/<source[^>]+src="([^"]+)"/g)].map((match) => match[1]);
+
+            // Extract URLs from <a> tags
+            const hrefLinks = [...html.matchAll(/<a[^>]+href="([^"]+)"/g)].map((match) => match[1]);
+
+            // Combine both arrays
+            const allLinks = [...sourceLinks, ...hrefLinks];
+
+            // Check if any link contains 'videoplayback'
+            const playbackLink = allLinks.find(link => link.includes('videoplayback'));
+
+            if (playbackLink) {
+                // If found, redirect to the playback URL
+                console.log('Playback URL found:', playbackLink);
+                return res.redirect(playbackLink);
+            } else {
+                // If not found, wait for 3 seconds and try again
+                console.log('Playback URL not found, retrying...');
+                setTimeout(fetchUntilPlayback, 3000);
+            }
+        } catch (error) {
+            console.error('Failed to fetch webpage:', error.message);
+            // Retry after 3 seconds on error
+            setTimeout(fetchUntilPlayback, 3000);
+        }
+    };
+
+    // Start the polling
+    fetchUntilPlayback();
+});
 
 
 

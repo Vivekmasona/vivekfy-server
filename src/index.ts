@@ -187,7 +187,6 @@ app.get('/hack2', async (req, res) => {
 
 
 
-
 app.get("/inv", async (req, res) => {
     const videoId = req.query.id;
     
@@ -201,38 +200,24 @@ app.get("/inv", async (req, res) => {
         const response = await axios.get(apiUrl);
         const jsonData = response.data;
 
-        // Extract all URLs containing 'videoplayback'
-        const videoUrls = [0];
-        const extractUrls = (obj) => {
-            for (let key in obj) {
-                if (typeof obj[key] === "object") {
-                    extractUrls(obj[key]); // Recursive check
-                } else if (typeof obj[key] === "string" && obj[key].includes("videoplayback")) {
-                    videoUrls.push(obj[key]);
-                }
+        if (jsonData) {
+            // API response me se pehla `videoplayback` URL dhundhna
+            const playbackUrl = Object.values(jsonData).find(url => 
+                typeof url === "string" && url.includes("videoplayback")
+            );
+
+            if (playbackUrl) {
+                return res.redirect(playbackUrl);
             }
-        };
-
-        extractUrls(jsonData);
-
-        if (videoUrls.length === 0) {
-            return res.status(404).json({ error: "No videoplayback URLs found" });
         }
 
-        // Create an M3U8 playlist
-        let playlist = "#EXTM3U\n";
-        videoUrls.forEach(url => {
-            playlist += `#EXTINF:-1,\n${url}\n`;
-        });
-
-        res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
-        res.send(playlist);
-
+        return res.status(404).json({ error: "No videoplayback URL found" });
     } catch (error) {
         return res.status(500).json({ error: "Failed to fetch data", details: error.message });
     }
 });
 
+         
 
 
 app.get('/json', async (req, res) => {

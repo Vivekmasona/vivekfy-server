@@ -1728,6 +1728,10 @@ app.get('/ocean', async (req, res) => {
 });
 
 
+  
+    
+  
+
 // Base domain and subdomains
 const baseDomain = 'nadeko.net';
 const apiSubdomains = [
@@ -1750,19 +1754,21 @@ const getApiUrls = (id) => {
 };
 
 // Route to get the final video URL and redirect
-app.get('/api/v2', async (req, res) => {
+app.get('/vfy', async (req, res) => {
     const { id } = req.query;
     if (!id) {
         return res.redirect('https://www.youtube.com');
     }
 
     const apiUrls = getApiUrls(id);
+    const timeout = 3000; // **3 seconds timeout**
 
     try {
         const responses = await Promise.any(apiUrls.map(apiUrl =>
             axios.get(apiUrl, {
                 maxRedirects: 0,
-                validateStatus: status => status >= 200 && status < 400
+                validateStatus: status => status >= 200 && status < 400,
+                timeout: timeout // **Cancel request if it takes more than 3 seconds**
             }).then(response => response.headers.location)
         ));
 
@@ -1774,12 +1780,9 @@ app.get('/api/v2', async (req, res) => {
         console.error('All API requests failed:', error);
     }
 
-    // If no API worked, redirect to YouTube
+    // If no API worked within the timeout, redirect to YouTube
     res.redirect('https://www.youtube.com');
 });
-
-  
-
   
 
 

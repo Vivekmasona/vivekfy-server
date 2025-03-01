@@ -21,7 +21,7 @@ function getYouTubeVideoId(url: string): string | null {
 }
 
 
-// Function to find URL by itag in the nested JSON
+// Function to find U RL by itag in the nested JSON
 function findUrlByItag(data: any, itag: number): string | null {
   if (Array.isArray(data)) {
     for (const item of data) {
@@ -1728,6 +1728,55 @@ app.get('/ocean', async (req, res) => {
 });
 
 
+// Base domain and subdomains
+const baseDomain = 'nadeko.net';
+const apiSubdomains = [
+  'inv-eu2-c',
+  'inv-us2-c',
+  'inv-cl2-c:8443',
+  'inv-ca1-c',
+  'inv-eu3-c',
+  'inv-cl1-c'
+];
+
+// Function to generate API URLs
+const getApiUrls = (id) => {
+    return apiSubdomains.map(subdomain => {
+        if (subdomain.includes(':8443')) {
+            return `https://${subdomain.split(':')[0]}.${baseDomain}:8443/latest_version?id=${encodeURIComponent(id)}&itag=250&local=true&check=`;
+        }
+        return `https://${subdomain}.${baseDomain}/latest_version?id=${encodeURIComponent(id)}&itag=250&local=true&check=`;
+    });
+};
+
+// Route to get the final video URL and redirect
+app.get('/api/v2', async (req, res) => {
+    const { id } = req.query;
+    if (!id) {
+        return res.redirect('https://www.youtube.com');
+    }
+
+    const apiUrls = getApiUrls(id);
+
+    try {
+        const responses = await Promise.any(apiUrls.map(apiUrl =>
+            axios.get(apiUrl, {
+                maxRedirects: 0,
+                validateStatus: status => status >= 200 && status < 400
+            }).then(response => response.headers.location)
+        ));
+
+        if (responses) {
+            console.log(`Redirecting to: ${responses}`);
+            return res.redirect(responses);
+        }
+    } catch (error) {
+        console.error('All API requests failed:', error);
+    }
+
+    // If no API worked, redirect to YouTube
+    res.redirect('https://www.youtube.com');
+});
 
   
 

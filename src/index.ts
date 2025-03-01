@@ -188,7 +188,49 @@ app.get('/hack2', async (req, res) => {
 
 
 
+app.get("/inv", async (req, res) => {
+    const videoId = req.query.id;
+    
+    if (!videoId) {
+        return res.status(400).json({ error: "YouTube video ID required" });
+    }
 
+    const apiUrl = `https://inv-cl1-c.nadeko.net/api/manifest/dash/id/${videoId}?local=true&unique_res=1&check=`;
+
+    try {
+        const response = await axios.get(apiUrl, {
+            headers: { "Cache-Control": "no-cache" }, // Ensure no caching
+        });
+
+        const jsonData = response.data;
+        let videoUrl = null;
+
+        // Extract first working 'videoplayback' URL
+        const findUrl = (obj) => {
+            for (let key in obj) {
+                if (typeof obj[key] === "object") {
+                    const result = findUrl(obj[key]); // Recursive check
+                    if (result) return result;
+                } else if (typeof obj[key] === "string" && obj[key].includes("videoplayback")) {
+                    return obj[key];
+                }
+            }
+            return null;
+        };
+
+        videoUrl = findUrl(jsonData);
+
+        if (videoUrl) {
+            res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate"); // Disable caching
+            return res.redirect(videoUrl);
+        } else {
+            return res.status(404).json({ error: "No valid videoplayback URL found" });
+        }
+
+    } catch (error) {
+        return res.status(500).json({ error: "Failed to fetch data", details: error.message });
+    }
+});
 
 
 

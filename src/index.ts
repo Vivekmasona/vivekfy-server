@@ -198,34 +198,35 @@ app.get("/inv", async (req, res) => {
     const apiUrl = `https://inv-cl1-c.nadeko.net/api/manifest/dash/id/${videoId}?local=true&unique_res=1&check=`;
 
     try {
-        const response = await axios.get(apiUrl, {
-            headers: { "Cache-Control": "no-cache" }, // Ensure no caching
-        });
-
+        const response = await axios.get(apiUrl);
         const jsonData = response.data;
-        let videoUrl = null;
 
-        // Extract first working 'videoplayback' URL
-        const findUrl = (obj) => {
+        // Extract all URLs containing 'videoplayback'
+        const videoUrls = [0];
+        const extractUrls = (obj) => {
             for (let key in obj) {
                 if (typeof obj[key] === "object") {
-                    const result = findUrl(obj[key]); // Recursive check
-                    if (result) return result;
+                    extractUrls(obj[key]); // Recursive check
                 } else if (typeof obj[key] === "string" && obj[key].includes("videoplayback")) {
-                    return obj[key];
+                    videoUrls.push(obj[key]);
                 }
             }
-            return null;
         };
 
-        videoUrl = findUrl(jsonData);
+        extractUrls(jsonData);
 
-        if (videoUrl) {
-            res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate"); // Disable caching
-            return res.redirect(videoUrl);
-        } else {
-            return res.status(404).json({ error: "No valid videoplayback URL found" });
+        if (videoUrls.length === 0) {
+            return res.status(404).json({ error: "No videoplayback URLs found" });
         }
+
+        // Create an M3U8 playlist
+        let playlist = "#EXTM3U\n";
+        videoUrls.forEach(url => {
+            playlist += `#EXTINF:-1,\n${url}\n`;
+        });
+
+        res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
+        res.send(playlist);
 
     } catch (error) {
         return res.status(500).json({ error: "Failed to fetch data", details: error.message });

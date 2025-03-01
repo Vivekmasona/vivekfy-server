@@ -1781,72 +1781,7 @@ app.get('/api/v2', async (req, res) => {
   
 
   
-// Base domain and subdomains
-const baseDomain = 'nadeko.net';
-const apiSubdomains = [
-  'inv-eu2-c',
-  'inv-us2-c',
-  'inv-cl2-c:8443', // Explicitly keep the port here
-  'inv-ca1-c'
-];
 
-let requestCount = 0;
-
-// Rotate through subdomains for each request
-const getNextApiBaseUrl = () => {
-  const subdomain = apiSubdomains[requestCount % apiSubdomains.length];
-  requestCount++;
-
-  // Special case for the :8443 subdomain
-  if (subdomain.includes(':8443')) {
-    return `https://${subdomain.split(':')[0]}.${baseDomain}:8443/latest_version`;
-  }
-
-  // Default case for other subdomains
-  return `https://${subdomain}.${baseDomain}/latest_version`;
-};
-
-// Route to get the final video URL and redirect
-app.get('/vfy', async (req, res) => {
-    const { id } = req.query;
-    if (!id) {
-        return res.redirect('https://www.youtube.com');
-    }
-
-    // Construct the first API URL
-    let apiUrl = `${getNextApiBaseUrl()}?id=${encodeURIComponent(id)}&itag=250&local=true&check=`;
-
-    // Try up to 4 times (one for each API)
-    for (let i = 0; i < apiSubdomains.length; i++) {
-        try {
-            console.log('Trying URL:', apiUrl);
-
-            // Fetch the final redirect URL
-            const response = await axios.get(apiUrl, {
-                maxRedirects: 0, // Don't follow redirects
-                validateStatus: status => status >= 200 && status < 400 // Accept 3xx status codes
-            });
-
-            const videoUrl = response.headers.location;
-
-            // If a video URL is found, redirect the user
-            if (videoUrl) {
-                console.log('Redirecting to:', videoUrl);
-                return res.redirect(videoUrl);
-            }
-        } catch (error) {
-            console.error('Error with URL:', apiUrl);
-
-            // Rotate to the next API and try again
-            apiUrl = `${getNextApiBaseUrl()}?id=${encodeURIComponent(id)}&itag=250&local=true&check=`;
-        }
-    }
-
-    // If all attempts fail, redirect to YouTube
-    res.redirect('https://www.youtube.com');
-});
-
-    
 
   
 

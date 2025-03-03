@@ -293,7 +293,59 @@ app.get('/hack', async (req, res) => {
     }
 });
 
+app.get('/v3', async (req, res) => {  
+    const { q } = req.query;  
 
+    if (!q || typeof q !== 'string') {  
+        return res.status(400).json({ error: 'Query parameter ?q is required' });  
+    }  
+
+    try {  
+        const url = `https://clipzag.com/search?q=${encodeURIComponent(q)}`;  
+        const response = await axios.get(url);  
+        const html = response.data;  
+
+        const matches = [...html.matchAll(/<a class='title-color' href='watch\?v=([^']+)'>[\s\S]*?<img .*?data-thumb='([^']+)'.*?>[\s\S]*?<div class='title-style' title='([^']+)'>(.*?)<\/div>[\s\S]*?<a class='by-user' href='\/channel\?id=([^']+)'>(.*?)<\/a>/g)];  
+
+        const results = matches.map(match => ({  
+            kind: "youtube#searchResult",
+            etag: null,  
+            id: {  
+                kind: "youtube#video",
+                videoId: match[1] || null  
+            },  
+            snippet: {  
+                publishedAt: null,  
+                channelId: match[4] || null,  
+                title: match[3]?.trim() || null,  
+                description: null,  
+                thumbnails: {  
+                    default: { url: `https:${match[2]}` || null },  
+                    medium: { url: `https:${match[2]}` || null },  
+                    high: { url: `https:${match[2]}` || null }  
+                },  
+                channelTitle: match[5]?.trim() || null,  
+                liveBroadcastContent: "none"  
+            }  
+        }));  
+
+        res.json({  
+            kind: "youtube#searchListResponse",  
+            etag: null,  
+            nextPageToken: null,  
+            prevPageToken: null,  
+            regionCode: "IN",  
+            pageInfo: {  
+                totalResults: results.length,  
+                resultsPerPage: results.length  
+            },  
+            items: results  
+        });  
+
+    } catch (error) {  
+        res.status(500).json({ error: 'Failed to fetch data', details: error.message });  
+    }  
+});
 
 app.get('/self-api', async (req, res) => {
     const { q } = req.query;

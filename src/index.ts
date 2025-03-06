@@ -87,7 +87,21 @@ app.get('/audio', async (req: Request, res: Response) => {
 });
 
 
+app.get("/solve", (req, res) => {
+    try {
+        const question = req.query.questions;
+        if (!question) {
+            return res.json({ error: "Please provide a valid question" });
+        }
+        
+        // Unsafe eval method to solve basic math problems
+        let answer = eval(question);
 
+        res.json({ question, answer });
+    } catch (error) {
+        res.json({ error: "Invalid question format" });
+    }
+});
 
 app.get('/mp3', async (req, res) => {
     const { url, redirect } = req.query;

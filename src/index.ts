@@ -87,21 +87,23 @@ app.get('/audio', async (req: Request, res: Response) => {
 });
 
 
-app.get("/solve", (req, res) => {
-    try {
-        const question = req.query.questions;
-        if (!question) {
-            return res.json({ error: "Please provide a valid question" });
-        }
-        
-        // Unsafe eval method to solve basic math problems
-        let answer = eval(question);
+app.get("/solve", async (req, res) => {
+    const question = req.query.questions;
 
-        res.json({ question, answer });
+    if (!question) {
+        return res.status(400).json({ error: "Please provide a valid question" });
+    }
+
+    try {
+        // `eval` ka use sirf mathematical expressions ke liye ho raha hai
+        const answer = eval(question);
+
+        return res.json({ question, answer });
     } catch (error) {
-        res.json({ error: "Invalid question format" });
+        return res.status(400).json({ error: "Invalid mathematical expression" });
     }
 });
+
 
 app.get('/mp3', async (req, res) => {
     const { url, redirect } = req.query;

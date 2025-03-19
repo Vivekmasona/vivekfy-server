@@ -127,7 +127,8 @@ app.get('/tts/v2', async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Voice synthesis failed' });
     }
 });
-
+// Vercel के लिए Handler
+export default app;
 
 
 app.get("/solve", async (req, res) => {

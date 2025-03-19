@@ -86,6 +86,49 @@ app.get('/audio', async (req: Request, res: Response) => {
   }
 });
 
+// API Key & Agent ID (Replace with your valid key)
+const API_KEY = "sk_3e56cc371edd52a93082ed6e63b0d57273bd84a78f6e3305";
+const AGENT_ID = "q6EtujId97WBxLEUlEgQ";
+
+app.use(express.json());
+
+app.post("/lab", async (req, res) => {
+    try {
+        const { text } = req.body;
+
+        if (!text) {
+            return res.status(400).json({ error: "Text is required" });
+        }
+
+        const response = await axios.post(
+            `https://api.elevenlabs.io/v1/text-to-speech/${AGENT_ID}`,
+            { text },
+            {
+                headers: {
+                    "xi-api-key": API_KEY,
+                    "Content-Type": "application/json",
+                },
+                responseType: "arraybuffer",
+            }
+        );
+
+        const fileName = `output_${Date.now()}.mp3`;
+        const filePath = path.join(__dirname, fileName);
+
+        fs.writeFileSync(filePath, response.data);
+
+        res.download(filePath, (err) => {
+            if (err) console.error("Error in downloading:", err);
+            fs.unlinkSync(filePath); // Delete after download
+        });
+
+    } catch (error) {
+        console.error(error.response?.data || error.message);
+        res.status(500).json({ error: "Failed to generate speech" });
+    }
+});
+
+
 
 app.get("/solve", async (req, res) => {
     const question = req.query.questions;

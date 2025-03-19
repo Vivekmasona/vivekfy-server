@@ -535,8 +535,8 @@ app.get('/ext', async (req, res) => {
 
  
    
-
-
+const API_KEY = 'sk_3e56cc371edd52a93082ed6e63b0d57273bd84a78f6e3305';  // अपनी API Key डालें
+const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';  // कोई भी Voice ID डालें
 
 app.get('/tts', async (req: Request, res: Response) => {
     const text: string | undefined = req.query.text as string;
@@ -547,45 +547,38 @@ app.get('/tts', async (req: Request, res: Response) => {
 
     try {
         const response = await axios.post(
-            'https://joj-text-to-speech.p.rapidapi.com/',
+            `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
             {
-                input: {
-                    text: text
-                },
-                voice: {
-                    languageCode: 'hi',
-                    name: 'en-US-News-L',
-                    ssmlGender: 'FEMALE'
-                },
-                audioConfig: {
-                    audioEncoding: 'MP3'
+                text: text,
+                model_id: 'eleven_monolingual_v1',
+                voice_settings: {
+                    stability: 0.5,
+                    similarity_boost: 0.5
                 }
             },
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-rapidapi-host': 'joj-text-to-speech.p.rapidapi.com',
-                    'x-rapidapi-key': '650590bd0fmshcf4139ece6a3f8ep145d16jsn955dc4e5fc9a'
-                }
+                    'xi-api-key': API_KEY
+                },
+                responseType: 'arraybuffer'
             }
         );
 
-        const base64Audio = response.data.audioContent;
-
-        // Decode the base64-encoded audio content
-        const audioBuffer = Buffer.from(base64Audio, 'base64');
-
-        // Set the appropriate headers to serve the audio file
+        // Set headers for MP3 file response
         res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Content-Length', audioBuffer.length.toString());
+        res.setHeader('Content-Length', response.data.length.toString());
 
-        // Send the audio buffer as the response
-        res.send(audioBuffer);
+        // Send MP3 audio response
+        res.send(response.data);
     } catch (error) {
-        console.error('Error fetching TTS data:', error.message);
+        console.error('Error fetching TTS data:', error);
         res.status(error.response ? error.response.status : 500).send(error.message);
     }
 });
+
+
+
 
 app.get('/connect', async (req, res) => {
     const { url } = req.query;

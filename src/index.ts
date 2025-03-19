@@ -535,44 +535,6 @@ app.get('/ext', async (req, res) => {
 
  
    
-const API_KEY = 'sk_3e56cc371edd52a93082ed6e63b0d57273bd84a78f6e3305';  // अपनी API Key डालें
-const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';  // कोई भी Voice ID डालें
-app.get('/tts', async (req: Request, res: Response) => {
-    const text: string | undefined = req.query.text as string;
-
-    if (!text) {
-        return res.status(400).json({ error: 'Text query parameter is required' });
-    }
-
-    try {
-        const response = await axios.post(
-            `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-            {
-                text: text,
-                model_id: 'eleven_monolingual_v1',
-                voice_settings: {
-                    stability: 0.5,
-                    similarity_boost: 0.5
-                }
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'xi-api-key': API_KEY
-                },
-                responseType: 'arraybuffer'
-            }
-        );
-
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Content-Length', response.data.length.toString());
-        res.send(response.data);
-    } catch (error: any) {
-        console.error('Error fetching TTS data:', error.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
-
 
 app.get('/connect', async (req, res) => {
     const { url } = req.query;

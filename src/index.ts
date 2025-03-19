@@ -91,7 +91,7 @@ app.get('/audio', async (req: Request, res: Response) => {
 const API_KEY = "sk_3e56cc371edd52a93082ed6e63b0d57273bd84a78f6e3305";
 const VOICE_ID = "q6EtujId97WBxLEUlEgQ"; // Replace with a valid voice ID
 
-app.get('/tts', async (req: Request, res: Response) => {
+app.get('/lab', async (req: Request, res: Response) => {
     const text: string | undefined = req.query.text as string;
 
     if (!text) {

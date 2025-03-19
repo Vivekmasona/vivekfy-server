@@ -87,48 +87,13 @@ app.get('/audio', async (req: Request, res: Response) => {
 });
 
 
-// ElevenLabs API Key & Voice ID
-const API_KEY = "sk_3e56cc371edd52a93082ed6e63b0d57273bd84a78f6e3305";
-const VOICE_ID = "q6EtujId97WBxLEUlEgQ"; // Replace with a valid voice ID
-
-app.get('/lab', async (req: Request, res: Response) => {
-    const text: string | undefined = req.query.text as string;
-
-    if (!text) {
-        return res.status(400).send('Text query parameter is required');
-    }
-
-    try {
-        const response = await axios.post(
-            `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-            { text },
-            {
-                headers: {
-                    'xi-api-key': API_KEY,
-                    'Content-Type': 'application/json',
-                },
-                responseType: 'arraybuffer',
-            }
-        );
-
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Content-Length', response.data.length);
-        res.send(response.data);
-    } catch (error: any) {
-        console.error('Error fetching TTS data:', error.message);
-        res.status(error.response ? error.response.status : 500).send(error.message);
-    }
-});
-
-
-
 
 
 app.get("/solve", async (req, res) => {
     const question = req.query.questions;
 
     if (!question) {
-        return res.status(400).json({ error: "Please provide a valid question" });
+        return res.status(400).json({ error: "Please provide a valiquestion" });
     }
 
     try {

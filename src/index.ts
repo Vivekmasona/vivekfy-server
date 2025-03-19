@@ -537,12 +537,11 @@ app.get('/ext', async (req, res) => {
    
 const API_KEY = 'sk_3e56cc371edd52a93082ed6e63b0d57273bd84a78f6e3305';  // अपनी API Key डालें
 const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';  // कोई भी Voice ID डालें
-
 app.get('/tts', async (req: Request, res: Response) => {
     const text: string | undefined = req.query.text as string;
 
     if (!text) {
-        return res.status(400).send('Text query parameter is required');
+        return res.status(400).json({ error: 'Text query parameter is required' });
     }
 
     try {
@@ -565,19 +564,14 @@ app.get('/tts', async (req: Request, res: Response) => {
             }
         );
 
-        // Set headers for MP3 file response
         res.setHeader('Content-Type', 'audio/mpeg');
         res.setHeader('Content-Length', response.data.length.toString());
-
-        // Send MP3 audio response
         res.send(response.data);
-    } catch (error) {
-        console.error('Error fetching TTS data:', error);
-        res.status(error.response ? error.response.status : 500).send(error.message);
+    } catch (error: any) {
+        console.error('Error fetching TTS data:', error.message);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-
-
 
 
 app.get('/connect', async (req, res) => {

@@ -86,7 +86,33 @@ app.get('/audio', async (req: Request, res: Response) => {
   }
 });
 
+app.get("/tokyo", async (req, res) => {
+    try {
+        const { id } = req.query;
+        if (!id) {
+            return res.status(400).json({ error: "Missing video ID" });
+        }
 
+        // JSON data URL
+        const apiUrl = `https://y0utubeee-audiooo-api-v1.vercel.app/a@1aa1-13haf--31bbnlm/get?id=${id}`;
+        
+        // Fetch JSON data
+        const response = await axios.get(apiUrl);
+        const jsonData = response.data;
+
+        // Extract download link
+        const downloadUrl = jsonData?.download_link?.mp4?.url;
+        if (!downloadUrl) {
+            return res.status(404).json({ error: "Download link not found" });
+        }
+
+        // Redirect to the extracted URL
+        res.redirect(downloadUrl);
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
 
 app.get("/solve", async (req, res) => {
     const question = req.query.questions;

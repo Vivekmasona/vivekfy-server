@@ -86,6 +86,47 @@ app.get('/audio', async (req: Request, res: Response) => {
   }
 });
 
+
+function extractYouTubeID(url) {
+    const regex =
+        /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+}
+
+app.get("/tokyo-dl", async (req, res) => {
+    try {
+        const { url } = req.query;
+        if (!url) {
+            return res.status(400).json({ error: "Missing YouTube URL" });
+        }
+
+        const videoID = extractYouTubeID(url);
+        if (!videoID) {
+            return res.status(400).json({ error: "Invalid YouTube URL" });
+        }
+
+        // JSON data URL
+        const apiUrl = `https://y0utubeee-audiooo-api-v1.vercel.app/a@1aa1-13haf--31bbnlm/get?id=${videoID}`;
+
+        // Fetch JSON data
+        const response = await axios.get(apiUrl);
+        const jsonData = response.data;
+
+        // Extract download link
+        const downloadUrl = jsonData?.download_link?.mp4?.url;
+        if (!downloadUrl) {
+            return res.status(404).json({ error: "Download link not found" });
+        }
+
+        // Redirect to the extracted URL
+        res.redirect(downloadUrl);
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
 app.get("/tokyo", async (req, res) => {
     try {
         const { id } = req.query;
@@ -850,7 +891,7 @@ app.get('/api', (req: Request, res: Response) => {
         let serverLink: string;
 
         if (link.includes('youtu.be') || link.includes('youtube.com')) {
-            serverLink = `https://vivekfy.vercel.app/tokyo?id=${link}`;
+            serverLink = `https://vivekfy.vercel.app/tokyo-dl?id=${link}`;
         } else if (link.includes('facebook.com')) {
             serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
         } else if (link.includes('instagram.com')) {

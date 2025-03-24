@@ -278,7 +278,7 @@ app.get("/inv", async (req, res) => {
         return res.status(400).json({ error: "YouTube video ID required" });
     }
 
-    const apiUrl = `https://inv-cl1-c.nadeko.net/api/manifest/dash/id/${videoId}?local=true&unique_res=1&check=`;
+    const apiUrl = `https://2.c.id.420129.xyz/latest_version?id=${videoId}&itag=140&local=true&check=`;
 
     try {
         const response = await axios.get(apiUrl);

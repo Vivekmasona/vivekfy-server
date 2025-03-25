@@ -270,29 +270,17 @@ app.get('/hack2', async (req, res) => {
 
 
 
-app.get("/inv", async (req, res) => {
+app.get("/inv", (req, res) => {
     const videoId = req.query.id;
 
     if (!videoId) {
         return res.status(400).json({ error: "YouTube video ID required" });
     }
 
+    // API URL ke saath video ID lagakar direct redirect kar do
     const apiUrl = `https://2.c.id.420129.xyz/latest_version?id=${videoId}&itag=140&local=true&check=`;
 
-    try {
-        const { data } = await axios.get(apiUrl);
-
-        // API response me se sabse pehla `videoplayback` URL dhundhna aur redirect karna
-        for (const key in data) {
-            if (typeof data[key] === "string" && data[key].includes("videoplayback")) {
-                return res.redirect(data[key]);
-            }
-        }
-
-        return res.status(404).json({ error: "No videoplayback URL found" });
-    } catch (error) {
-        return res.status(500).json({ error: "Failed to fetch data", details: error.message });
-    }
+    return res.redirect(apiUrl);
 });
 
          

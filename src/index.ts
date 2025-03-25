@@ -581,7 +581,55 @@ app.get('/ext', async (req, res) => {
 
 
 
- 
+ app.get("/api/v3", async (req, res) => {
+    const { query } = req.query;
+
+    if (!query) {
+        return res.status(400).json({ error: "Query parameter is required" });
+    }
+
+    try {
+        // Fetch search results from Yewtu.be
+        const response = await axios.get(`https://yewtu.be/search?q=${encodeURIComponent(query)}`);
+        const html = response.data;
+        const $ = cheerio.load(html);
+
+        let results = [];
+
+        // Extract video details
+        $(".video-card").each((index, element) => {
+            const title = $(element).find(".video-card-row a p").text().trim();
+            const url = "https://yewtu.be" + $(element).find(".video-card-row a").attr("href");
+            const thumbnail = $(element).find("img").attr("src");
+            const duration = $(element).find(".length").text().trim();
+            const channelName = $(element).find(".channel-name").text().trim();
+            const channelUrl = "https://yewtu.be" + $(element).find(".channel-name").parent("a").attr("href");
+
+            results.push({
+                id: { videoId: url.split("v=")[1] || url.split("/watch/")[1] },
+                snippet: {
+                    title,
+                    thumbnails: {
+                        default: { url: thumbnail },
+                        medium: { url: thumbnail },
+                        high: { url: thumbnail },
+                    },
+                    channelTitle: channelName,
+                    channelId: channelUrl.split("/channel/")[1] || null,
+                    duration,
+                },
+            });
+        });
+
+        res.json({
+            kind: "youtube#searchListResponse",
+            items: results,
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch results", details: error.message });
+    }
+});
+
    
 
 app.get('/connect', async (req, res) => {

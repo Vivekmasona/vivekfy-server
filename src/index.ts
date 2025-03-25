@@ -270,10 +270,9 @@ app.get('/hack2', async (req, res) => {
 
 
 
-
 app.get("/inv", async (req, res) => {
     const videoId = req.query.id;
-    
+
     if (!videoId) {
         return res.status(400).json({ error: "YouTube video ID required" });
     }
@@ -281,17 +280,12 @@ app.get("/inv", async (req, res) => {
     const apiUrl = `https://2.c.id.420129.xyz/latest_version?id=${videoId}&itag=140&local=true&check=`;
 
     try {
-        const response = await axios.get(apiUrl);
-        const jsonData = response.data;
+        const { data } = await axios.get(apiUrl);
 
-        if (jsonData) {
-            // API response me se pehla `videoplayback` URL dhundhna
-            const playbackUrl = Object.values(jsonData).find(url => 
-                typeof url === "string" && url.includes("videoplayback")
-            );
-
-            if (playbackUrl) {
-                return res.redirect(playbackUrl);
+        // API response me se sabse pehla `videoplayback` URL dhundhna aur redirect karna
+        for (const key in data) {
+            if (typeof data[key] === "string" && data[key].includes("videoplayback")) {
+                return res.redirect(data[key]);
             }
         }
 

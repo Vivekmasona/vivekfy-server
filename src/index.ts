@@ -87,6 +87,63 @@ app.get('/audio', async (req: Request, res: Response) => {
 });
 
 
+
+
+
+
+
+
+
+
+
+
+app.get("/pb", async (req, res) => {
+  const { id } = req.query;
+  if (!id) return res.status(400).json({ error: "YouTube video ID required" });
+
+  try {
+    const response = await axios.post(
+      "https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
+      {
+        context: {
+          client: {
+            clientName: "ANDROID",
+            clientVersion: "19.08.35"
+          }
+        },
+        videoId: id
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "com.google.android.youtube/19.08.35 (Linux; U; Android 15) gzip",
+          "Cookie": process.env.YT_COOKIES || ""   // yaha apne YouTube cookies dalni hongi
+        }
+      }
+    );
+
+    const formats = response.data.streamingData?.adaptiveFormats || [];
+    const audio = formats.find(f => f.mimeType.includes("audio/mp4"));
+
+    if (!audio) return res.status(404).json({ error: "No audio format found" });
+
+    res.json({ url: audio.url });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to fetch playback URL" });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
 function extractYouTubeID(url) {
     const regex =
         /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/\s]{11})/;

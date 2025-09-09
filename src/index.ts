@@ -1917,40 +1917,54 @@ app.get('/vfy', async (req, res) => {
   
 
 
- app.get("/play", async (req, res) => {
+ 
+
+app.get("/play", async (req, res) => {
   try {
     const ytUrl = req.query.url;
     if (!ytUrl) {
       return res.status(400).send("Missing url parameter");
     }
 
-    // Fetch JSON from your API
+    // API call
     const apiUrl = `https://vivekfy.vercel.app/json?url=${encodeURIComponent(
       ytUrl
     )}`;
     const { data } = await axios.get(apiUrl);
 
-    // Agar ek object me hi itag=140 mila
-    if (data.itag === 140 && data.url) {
-      return res.redirect(data.url);
-    }
+    let audio;
 
-    // Agar array aaya ho (kabhi kabhi API multiple stream deta hai)
     if (Array.isArray(data)) {
-      const audio = data.find((x) => x.itag === 140);
-      if (audio?.url) {
-        return res.redirect(audio.url);
+      // Agar multiple formats aaye
+      audio = data.find(
+        (x) =>
+          x.itag === 140 || // default m4a
+          (x.mimeType && x.mimeType.includes("audio/mp4")) ||
+          (x.codecs && x.codecs.includes("mp4a.40.2")) ||
+          (x.bitrate && x.bitrate > 120000) // example: high bitrate
+      );
+    } else if (typeof data === "object") {
+      // Agar single object mila
+      if (
+        data.itag === 140 ||
+        (data.mimeType && data.mimeType.includes("audio/mp4")) ||
+        (data.codecs && data.codecs.includes("mp4a.40.2")) ||
+        (data.bitrate && data.bitrate > 120000)
+      ) {
+        audio = data;
       }
     }
 
-    return res.status(404).send("itag 140 not found in response");
+    if (audio?.url) {
+      return res.redirect(audio.url);
+    }
+
+    return res.status(404).send("No suitable audio found in JSON");
   } catch (err) {
     console.error(err.message);
     return res.status(500).send("Server error");
   }
-});
-
- 
+}); 
 
 
 

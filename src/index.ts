@@ -925,47 +925,6 @@ app.get('/download-v2', async (req, res) => {
 
 
 
-// API route to get the playback URL
-app.get('/playy', async (req, res) => {
-  const youtubeUrl = req.query.url;
-
-  if (!youtubeUrl) {
-    return res.status(400).json({
-      status: 'error',
-      message: 'No URL provided. Use "?url=YOUTUBE_URL" in the query.',
-    });
-  }
-
-  try {
-    // yt-dlp options for extracting URL without downloading
-    const options = ['-e', '--no-warnings', '--quiet', '--extract-audio', '--audio-quality', '0', youtubeUrl];
-
-    // Execute the yt-dlp command
-    ytDlp.exec(options).then(info => {
-      const playbackUrl = info.url;
-
-      // Return the response as JSON
-      res.json({
-        status: 'success',
-        title: info.title,
-        playback_url: playbackUrl
-      });
-    }).catch(err => {
-      // If error occurs
-      res.status(500).json({
-        status: 'error',
-        message: 'Could not retrieve playback URL',
-        error: err.message
-      });
-    });
-  } catch (err) {
-    // General error handling
-    res.status(500).json({
-      status: 'error',
-      message: err.message,
-    });
-  }
-});
 
 
 
@@ -1958,7 +1917,38 @@ app.get('/vfy', async (req, res) => {
   
 
 
-  
+ app.get("/play", async (req: Request, res: Response) => {
+  try {
+    const ytUrl = req.query.url as string;
+    if (!ytUrl) {
+      return res.status(400).send("Missing url parameter");
+    }
+
+    // Call your API
+    const apiUrl = `https://vivekfy.vercel.app/json?url=${encodeURIComponent(
+      ytUrl
+    )}`;
+    const response = await axios.get(apiUrl);
+
+    // Find itag 140
+    const audio = Array.isArray(response.data)
+      ? response.data.find((x: any) => x.itag === 140)
+      : response.data.itag === 140
+      ? response.data
+      : null;
+
+    if (!audio || !audio.url) {
+      return res.status(404).send("itag 140 not found");
+    }
+
+    // Redirect to audio URL
+    return res.redirect(audio.url);
+  } catch (err: any) {
+    console.error(err.message);
+    return res.status(500).send("Server error");
+  }
+});
+ 
 
 
 

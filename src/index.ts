@@ -1917,37 +1917,39 @@ app.get('/vfy', async (req, res) => {
   
 
 
- app.get("/play", async (req: Request, res: Response) => {
+ app.get("/play", async (req, res) => {
   try {
-    const ytUrl = req.query.url as string;
+    const ytUrl = req.query.url;
     if (!ytUrl) {
       return res.status(400).send("Missing url parameter");
     }
 
-    // Call your API
+    // Fetch JSON from your API
     const apiUrl = `https://vivekfy.vercel.app/json?url=${encodeURIComponent(
       ytUrl
     )}`;
-    const response = await axios.get(apiUrl);
+    const { data } = await axios.get(apiUrl);
 
-    // Find itag 140
-    const audio = Array.isArray(response.data)
-      ? response.data.find((x: any) => x.itag === 140)
-      : response.data.itag === 140
-      ? response.data
-      : null;
-
-    if (!audio || !audio.url) {
-      return res.status(404).send("itag 140 not found");
+    // Agar ek object me hi itag=140 mila
+    if (data.itag === 140 && data.url) {
+      return res.redirect(data.url);
     }
 
-    // Redirect to audio URL
-    return res.redirect(audio.url);
-  } catch (err: any) {
+    // Agar array aaya ho (kabhi kabhi API multiple stream deta hai)
+    if (Array.isArray(data)) {
+      const audio = data.find((x) => x.itag === 140);
+      if (audio?.url) {
+        return res.redirect(audio.url);
+      }
+    }
+
+    return res.status(404).send("itag 140 not found in response");
+  } catch (err) {
     console.error(err.message);
     return res.status(500).send("Server error");
   }
 });
+
  
 
 

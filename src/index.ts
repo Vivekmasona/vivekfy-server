@@ -87,7 +87,65 @@ app.get('/audio', async (req: Request, res: Response) => {
 });
 
 
+// API endpoint to mimic YouTube Data API v3
+app.get("/self-api2", async (req, res) => {
+    const { q } = req.query;
 
+    if (!q || typeof q !== "string") {
+        return res.status(400).json({ error: "Query (q) is required" });
+    }
+
+    try {
+        const searchUrl = `https://yewtu.be/search?q=${encodeURIComponent(q)}`;
+        const response = await axios.get(searchUrl, {
+            headers: { "User-Agent": "Mozilla/5.0" }
+        });
+        const html = response.data;
+
+        const items = [];
+        const videoRegex = /<a href="\/watch\?v=([^"]+)"><p[^>]*>([^<]+)<\/p><\/a>[\s\S]*?<a href="\/channel\/([^"]+)">[\s\S]*?<p class="channel-name"[^>]*>([^<]+)/g;
+        let match;
+
+        while ((match = videoRegex.exec(html)) !== null) {
+            const videoId = match[1];
+            const title = match[2].trim();
+            const channelId = match[3].trim();
+            const channelTitle = match[4].trim();
+
+            items.push({
+                kind: "youtube#searchResult",
+                id: {
+                    kind: "youtube#video",
+                    videoId
+                },
+                snippet: {
+                    title,
+                    channelTitle,
+                    channelId,
+                    thumbnails: {
+                        default: { url: `https://img.youtube.com/vi/${videoId}/default.jpg` },
+                        medium: { url: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` },
+                        high: { url: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` }
+                    }
+                }
+            });
+        }
+
+        res.json({
+            kind: "youtube#searchListResponse",
+            etag: "etag_dummy",
+            regionCode: "IN",
+            pageInfo: {
+                totalResults: items.length,
+                resultsPerPage: items.length
+            },
+            items
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch results", details: error.message });
+    }
+});
 
 
 app.get("/self-api", async (req, res) => {

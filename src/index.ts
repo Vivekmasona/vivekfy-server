@@ -90,7 +90,81 @@ app.get('/audio', async (req: Request, res: Response) => {
 
 
 
+app.get("/self-api", async (req, res) => {
+    const { q } = req.query;
 
+    if (!q || typeof q !== "string") {
+        return res.status(400).json({ error: "Query parameter ?q is required" });
+    }
+
+    try {
+        // 🔹 yewtu.be search URL (Invidious instance)
+        const url = `https://yewtu.be/search?q=${encodeURIComponent(q)}`;
+        const response = await axios.get(url, {
+            headers: { "User-Agent": "Mozilla/5.0" }
+        });
+        const html = response.data;
+
+        const items = [];
+        const regex = /<a href="\/watch\?v=([^"]+)"><p[^>]*>([^<]+)<\/p><\/a>[\s\S]*?<a href="\/channel\/[^"]+">\s*<p class="channel-name"[^>]*>([^<]+)/g;
+        let match;
+
+        while ((match = regex.exec(html)) !== null) {
+            const videoId = match[1];
+            const title = match[2].trim();
+            const channelTitle = match[3].trim();
+
+            items.push({
+                kind: "youtube#searchResult",
+                etag: null,
+                id: {
+                    kind: "youtube#video",
+                    videoId: videoId
+                },
+                snippet: {
+                    publishedAt: null,
+                    channelId: null,
+                    title: title,
+                    description: null,
+                    thumbnails: {
+                        default: {
+                            url: `https://img.youtube.com/vi/${videoId}/default.jpg`,
+                            width: 120,
+                            height: 90
+                        },
+                        medium: {
+                            url: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+                            width: 320,
+                            height: 180
+                        },
+                        high: {
+                            url: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                            width: 480,
+                            height: 360
+                        }
+                    },
+                    channelTitle: channelTitle,
+                    liveBroadcastContent: "none",
+                    publishTime: null
+                }
+            });
+        }
+
+        res.json({
+            kind: "youtube#searchListResponse",
+            etag: null,
+            regionCode: "IN",
+            pageInfo: {
+                totalResults: items.length,
+                resultsPerPage: items.length
+            },
+            items
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch webpage", details: error.message });
+    }
+});
 
 
 
@@ -507,7 +581,7 @@ app.get('/v3', async (req, res) => {
     }  
 });
 
-app.get('/self-api', async (req, res) => {
+app.get('/self-api1', async (req, res) => {
     const { q } = req.query;
 
     if (!q || typeof q !== 'string') {

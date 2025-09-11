@@ -184,6 +184,43 @@ app.get("/tokyo-dl", async (req, res) => {
     }
 });
 
+
+// API endpoint to extract YouTube videoId, title, and channel
+app.get('/ex1', async (req, res) => {
+    const { url } = req.query;
+
+    if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'Valid URL is required' });
+    }
+
+    try {
+        const response = await axios.get(url, {
+            headers: { "User-Agent": "Mozilla/5.0" }
+        });
+        const html = response.data;
+
+        const results = [];
+        const regex = /<a href="\/watch\?v=([^"]+)"><p[^>]*>([^<]+)<\/p><\/a>[\s\S]*?<a href="\/channel\/[^"]+">\s*<p class="channel-name"[^>]*>([^<]+)/g;
+        let match;
+
+        while ((match = regex.exec(html)) !== null) {
+            results.push({
+                videoId: match[1],
+                title: match[2].trim(),
+                channel: match[3].trim()
+            });
+        }
+
+        res.json({ url, results });
+
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch webpage', details: error.message });
+    }
+});
+
+
+
+
 app.get("/tokyo", async (req, res) => {
     try {
         const { id } = req.query;

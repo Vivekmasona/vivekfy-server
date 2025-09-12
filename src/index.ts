@@ -1108,7 +1108,7 @@ app.get('/api', (req: Request, res: Response) => {
         if (link.includes('youtu.be') || link.includes('youtube.com')) {
             serverLink = `https://vivekfy.vercel.app/tokyo-dl?url=${link}`;
         } else if (link.includes('facebook.com')) {
-            serverLink = `https://vivekfy.vercel.app/savevideo?url=${link}`;
+            serverLink = `https://vivekfy.vercel.app/api/fb?url=${link}`;
         } else if (link.includes('instagram.com')) {
             serverLink = `https://vivekfy.vercel.app/api/ig?url=${link}`;
         } else if (link.includes('twitter.com') || link.includes('x.com')) {

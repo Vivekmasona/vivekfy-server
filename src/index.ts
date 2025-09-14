@@ -496,6 +496,7 @@ app.get('/hack2', async (req, res) => {
 
 
 
+
 app.get("/inv", (req, res) => {
     const videoId = req.query.id;
 
@@ -509,7 +510,31 @@ app.get("/inv", (req, res) => {
     return res.redirect(apiUrl);
 });
 
-         
+app.get("/inv1", (req, res) => {
+    const videoId = req.query.id;
+
+    if (!videoId) {
+        return res.status(400).json({ error: "YouTube video ID required" });
+    }
+
+    // API URL ke saath video ID lagakar direct redirect kar do
+    const apiUrl = `https://inv-us2.nadeko.net/companion/latest_version?id=${videoId}&itag=140&local=true&check=`;
+
+    return res.redirect(apiUrl);
+});
+
+app.get("/inv2", (req, res) => {
+    const videoId = req.query.id;
+
+    if (!videoId) {
+        return res.status(400).json({ error: "YouTube video ID required" });
+    }
+
+    // API URL ke saath video ID lagakar direct redirect kar do
+    const apiUrl = `https://inv-eu2.nadeko.net/companion/latest_version?id=${videoId}&itag=140&local=true&check=`;
+
+    return res.redirect(apiUrl);
+});         
 
 
 app.get('/json', async (req, res) => {

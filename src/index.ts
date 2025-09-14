@@ -504,7 +504,7 @@ app.get("/inv", (req, res) => {
     }
 
     // API URL ke saath video ID lagakar direct redirect kar do
-    const apiUrl = `https://2.c.id.420129.xyz/latest_version?id=${videoId}&itag=140&local=true&check=`;
+    const apiUrl = `https://inv-eu3.nadeko.net/companion/latest_version?id=${videoId}&itag=140&local=true&check=`;
 
     return res.redirect(apiUrl);
 });
@@ -2031,59 +2031,54 @@ app.get('/ocean', async (req, res) => {
   
     
   
-
 // Base domain and subdomains
 const baseDomain = 'nadeko.net';
 const apiSubdomains = [
-  'inv-eu2-c',
-  'inv-us2-c',
-  'inv-cl2-c:8443',
-  'inv-ca1-c',
-  'inv-eu3-c',
-  'inv-cl1-c'
+  'inv-eu2',
+  'inv-eu3',
+  'inv-us2',
 ];
 
 // Function to generate API URLs
 const getApiUrls = (id) => {
-    return apiSubdomains.map(subdomain => {
-        if (subdomain.includes(':8443')) {
-            return `https://${subdomain.split(':')[0]}.${baseDomain}:8443/latest_version?id=${encodeURIComponent(id)}&itag=250&local=true&check=`;
-        }
-        return `https://${subdomain}.${baseDomain}/latest_version?id=${encodeURIComponent(id)}&itag=250&local=true&check=`;
-    });
+  return apiSubdomains.map(subdomain =>
+    `https://${subdomain}.${baseDomain}/companion/latest_version?id=${encodeURIComponent(id)}&itag=249&local=true&check=`
+  );
 };
 
 // Route to get the final video URL and redirect
 app.get('/vfy', async (req, res) => {
-    const { id } = req.query;
-    if (!id) {
-        return res.redirect('https://www.youtube.com');
+  const { id } = req.query;
+  if (!id) {
+    return res.redirect('https://www.youtube.com');
+  }
+
+  const apiUrls = getApiUrls(id);
+  const timeout = 3000; // 3 seconds timeout
+
+  try {
+    const responses = await Promise.any(
+      apiUrls.map(apiUrl =>
+        axios.get(apiUrl, {
+          maxRedirects: 0,
+          validateStatus: status => status >= 200 && status < 400,
+          timeout: timeout
+        }).then(response => response.headers.location)
+      )
+    );
+
+    if (responses) {
+      console.log(`Redirecting to: ${responses}`);
+      return res.redirect(responses);
     }
+  } catch (error) {
+    console.error('All API requests failed:', error);
+  }
 
-    const apiUrls = getApiUrls(id);
-    const timeout = 3000; // **3 seconds timeout**
-
-    try {
-        const responses = await Promise.any(apiUrls.map(apiUrl =>
-            axios.get(apiUrl, {
-                maxRedirects: 0,
-                validateStatus: status => status >= 200 && status < 400,
-                timeout: timeout // **Cancel request if it takes more than 3 seconds**
-            }).then(response => response.headers.location)
-        ));
-
-        if (responses) {
-            console.log(`Redirecting to: ${responses}`);
-            return res.redirect(responses);
-        }
-    } catch (error) {
-        console.error('All API requests failed:', error);
-    }
-
-    // If no API worked within the timeout, redirect to YouTube
-    res.redirect('https://www.youtube.com');
+  // If no API worked within the timeout, redirect to YouTube
+  res.redirect('https://www.youtube.com');
 });
-  
+
 
 
  

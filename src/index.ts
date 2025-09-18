@@ -87,6 +87,46 @@ app.get('/audio', async (req: Request, res: Response) => {
 });
 
 
+// API route
+app.get("/free", async (req, res) => {
+  try {
+    const text = req.query.text as string;
+    const speaker = req.query.speaker || "1"; // default speaker 1
+
+    if (!text) {
+      return res.status(400).json({ error: "Text is required" });
+    }
+
+    // Call tts.quest API
+    const url = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(
+      text
+    )}&speaker=${speaker}`;
+
+    const response = await axios.get(url);
+
+    // tts.quest ka JSON return hota hai
+    const data = response.data;
+
+    if (!data.success) {
+      return res.status(500).json({ error: "TTS request failed", details: data });
+    }
+
+    // Sirf mp3 URL frontend ko bhejna
+    return res.json({
+      mp3: data.mp3DownloadUrl,
+      wav: data.wavDownloadUrl,
+      statusUrl: data.audioStatusUrl,
+      speaker: data.speakerName,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+
+
 // API endpoint to mimic YouTube Data API v3
 app.get("/self-api2", async (req, res) => {
     const { q } = req.query;

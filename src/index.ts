@@ -124,6 +124,35 @@ app.get("/free", async (req, res) => {
   }
 });
 
+// API route
+app.get("/read", async (req, res) => {
+  try {
+    const text = req.query.text as string;
+    const speaker = req.query.speaker || "1"; // default speaker 1
+
+    if (!text) {
+      return res.status(400).json({ error: "Text is required" });
+    }
+
+    // Call tts.quest API
+    const url = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(
+      text
+    )}&speaker=${speaker}`;
+
+    const response = await axios.get(url);
+    const data = response.data;
+
+    if (!data.success || !data.mp3DownloadUrl) {
+      return res.status(500).json({ error: "TTS request failed", details: data });
+    }
+
+    // 🚀 Instead of JSON, redirect directly to mp3
+    return res.redirect(data.mp3DownloadUrl);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 
 

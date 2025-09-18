@@ -124,6 +124,7 @@ app.get("/free", async (req, res) => {
   }
 });
 
+
 // API route
 app.get("/read", async (req, res) => {
   try {
@@ -142,17 +143,18 @@ app.get("/read", async (req, res) => {
     const response = await axios.get(url);
     const data = response.data;
 
-    if (!data.success || !data.mp3DownloadUrl) {
+    if (!data.success || !data.wavDownloadUrl) {
       return res.status(500).json({ error: "TTS request failed", details: data });
     }
 
-    // 🚀 Instead of JSON, redirect directly to mp3
-    return res.redirect(data.mp3DownloadUrl);
+    // 🚀 Redirect directly to wav file instead of mp3
+    return res.redirect(data.wavDownloadUrl);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 
 

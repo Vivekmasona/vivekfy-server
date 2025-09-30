@@ -388,6 +388,44 @@ app.get("/tokyo-dl", async (req, res) => {
 });
 
 
+
+app.get("/peroxy", async (req: Request, res: Response) => {
+  const videoId = req.query.id as string;
+
+  if (!videoId) {
+    return res.status(400).json({ error: "YouTube video ID required" });
+  }
+
+  // Tumhara API URL
+  const apiUrl = `https://inv-us2.nadeko.net/companion/latest_version?id=${videoId}&itag=140&local=true&check=`;
+
+  try {
+    // Step 1: Tumhare API se direct playback URL fetch karo
+    const apiResp = await axios.get(apiUrl);
+    const directUrl = apiResp.data?.url;
+
+    if (!directUrl) {
+      return res.status(500).json({ error: "No direct playback URL found" });
+    }
+
+    // Step 2: CORS headers set karo
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+    res.setHeader("Content-Type", "audio/mpeg");
+
+    // Step 3: Direct stream pipe karo client ko
+    const streamResp = await axios.get(directUrl, { responseType: "stream" });
+    streamResp.data.pipe(res);
+
+  } catch (err: any) {
+    console.error("Error in /inv1:", err.message);
+    return res.status(500).json({ error: "Failed to fetch audio" });
+  }
+});
+
+
+
+
 // API endpoint to extract YouTube videoId, title, and channel
 app.get('/ex1', async (req, res) => {
     const { url } = req.query;
